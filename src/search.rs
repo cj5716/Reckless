@@ -515,6 +515,7 @@ fn search<NODE: NodeType>(
     let cjp_margin = 150.max(rfp_margin * 7 / 8);
 
     if cut_node
+        && !tt_pv
         && depth < 5
         && !excluded
         && is_valid(estimated_score)
@@ -522,9 +523,27 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        let cjp_score = qsearch::<NonPV>(td, beta + cjp_margin - 1, beta + cjp_margin, ply);
-        if cjp_score >= beta + cjp_margin {
-            return cjp_score;
+        let mut move_picker = MovePicker::new_qsearch();
+        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
+            if !td.board.is_legal(mv) {
+                continue;
+            }
+
+            if move_picker.stage() == Stage::BadNoisy {
+                break;
+            }
+
+            make_move(td, ply, mv);
+
+            let raised_beta = beta + cjp_margin;
+            let cjp_score = -qsearch::<NonPV>(td, -raised_beta, -raised_beta + 1, ply + 1);
+
+            undo_move(td, mv);
+
+            if cjp_score >= beta + cjp_margin {
+                td.shared.tt.write(hash, 1, raw_eval, cjp_score, Bound::Lower, mv, ply, tt_pv, false);
+                return cjp_score;
+            }
         }
     }
 
