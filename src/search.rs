@@ -515,7 +515,7 @@ fn search<NODE: NodeType>(
     let cjp_margin = 150.max(rfp_margin * 7 / 8);
 
     if cut_node
-        && depth < 5
+        && depth < 3
         && !excluded
         && is_valid(estimated_score)
         && estimated_score >= beta + cjp_margin
