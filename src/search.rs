@@ -512,7 +512,7 @@ fn search<NODE: NodeType>(
     }
 
     // Something in-between RFP and Probcut
-    let cjp_margin = 100.max(rfp_margin * 3 / 4);
+    let cjp_margin = 20.max(rfp_margin * 9 / 16);
 
     if cut_node
         && !tt_pv
