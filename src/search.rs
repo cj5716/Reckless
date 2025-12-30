@@ -515,22 +515,22 @@ fn search<NODE: NodeType>(
     let cjp_margin = 100.max(rfp_margin * 3 / 4);
 
     if cut_node
-        && !tt_pv
-        && depth < 7
+        && depth < 8
         && !excluded
         && is_valid(estimated_score)
         && estimated_score >= beta + cjp_margin
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        let mut move_picker = MovePicker::new_qsearch();
+        let mut move_picker = MovePicker::new_probcut(1);
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if !td.board.is_legal(mv) {
-                continue;
-            }
 
             if move_picker.stage() == Stage::BadNoisy {
                 break;
+            }
+
+            if !td.board.is_legal(mv) {
+                continue;
             }
 
             make_move(td, ply, mv);
