@@ -512,11 +512,11 @@ fn search<NODE: NodeType>(
     }
 
     // Something in-between RFP and Probcut
-    let cjp_margin = 20.max(rfp_margin * 9 / 16);
+    let cjp_margin = 80.max(rfp_margin * 11 / 16);
 
     if cut_node
         && !tt_pv
-        && depth < 7
+        && depth < 9
         && !excluded
         && is_valid(estimated_score)
         && estimated_score >= beta + cjp_margin
