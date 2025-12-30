@@ -494,19 +494,38 @@ fn search<NODE: NodeType>(
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
+    let rfp_margin = 1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
+                + 500 * correction_value.abs() / 1024
+                + 35 * (depth == 1) as i32;
+
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
-                + 500 * correction_value.abs() / 1024
-                + 35 * (depth == 1) as i32
+            >= beta + rfp_margin
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
         return beta + (estimated_score - beta) / 3;
+    }
+
+    // Something in-between RFP and Probcut
+    let cjp_margin = 150.max(rfp_margin * 7 / 8);
+
+    if cut_node
+        && depth < 5
+        && !excluded
+        && is_valid(estimated_score)
+        && estimated_score >= beta + cjp_margin
+        && !is_loss(beta)
+        && !is_win(estimated_score)
+    {
+        let cjp_score = qsearch::<NonPV>(td, beta + cjp_margin - 1, beta + cjp_margin, ply);
+        if cjp_score >= beta + cjp_margin {
+            return cjp_score;
+        }
     }
 
     // Null Move Pruning (NMP)
