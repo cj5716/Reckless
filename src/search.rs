@@ -548,6 +548,10 @@ fn search<NODE: NodeType>(
 
             undo_move(td, mv);
 
+            if td.stopped {
+                return Score::ZERO;
+            }
+
             if cjp_score >= beta + cjp_margin {
                 td.shared.tt.write(hash, 1, raw_eval, cjp_score, Bound::Lower, mv, ply, tt_pv, false);
                 return cjp_score;
