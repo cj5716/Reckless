@@ -515,13 +515,11 @@ fn search<NODE: NodeType>(
     let cjp_beta = beta + 100.max(rfp_margin * 3 / 4);
 
     if cut_node
-        && depth > 1
         && depth < 7
         && is_valid(estimated_score)
         && estimated_score >= cjp_beta
         && !is_loss(beta)
         && !is_win(estimated_score)
-        && (!is_valid(tt_score) || tt_score >= cjp_beta && !is_decisive(tt_score))
     {
         let mut move_picker = MovePicker::new_qsearch();
 
