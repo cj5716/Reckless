@@ -561,6 +561,7 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     let probcut_beta = beta + 257 - 75 * improving as i32;
+    let mut tt_move_scam = false;
 
     if cut_node
         && !is_decisive(beta)
@@ -602,6 +603,10 @@ fn search<NODE: NodeType>(
                 }
             }
         }
+
+        if potential_singularity && tt_depth >= probcut_depth + 1 && tt_score >= probcut_beta && !is_decisive(tt_score) {
+            tt_move_scam = true;
+        }
     }
 
     // Singular Extensions (SE)
@@ -640,7 +645,9 @@ fn search<NODE: NodeType>(
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative Extensions
-        else if tt_score >= beta {
+        else if tt_move_scam {
+            extension = -3;
+        } else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
