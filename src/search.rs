@@ -524,6 +524,8 @@ fn search<NODE: NodeType>(
         && !is_win(estimated_score)
     {
         let mut move_picker = MovePicker::new_qsearch();
+        let mut move_count = 0;
+
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if !td.board.is_legal(mv) {
                 continue;
@@ -532,6 +534,12 @@ fn search<NODE: NodeType>(
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
+
+            if move_count >= 3 {
+                break;
+            }
+
+            move_count += 1;
 
             make_move(td, ply, mv);
 
