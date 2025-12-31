@@ -512,16 +512,16 @@ fn search<NODE: NodeType>(
     }
 
     // Something in-between RFP and Probcut
-    let cjp_margin = 100.max(rfp_margin * 3 / 4);
+    let cjp_beta = beta + 100.max(rfp_margin * 3 / 4);
 
     if cut_node
-        && !tt_pv
+        && depth > 1
         && depth < 7
-        && !excluded
         && is_valid(estimated_score)
-        && estimated_score >= beta + cjp_margin
+        && estimated_score >= cjp_beta
         && !is_loss(beta)
         && !is_win(estimated_score)
+        && (!is_valid(tt_score) || tt_score >= cjp_beta && !is_decisive(tt_score))
     {
         let mut move_picker = MovePicker::new_qsearch();
 
@@ -531,18 +531,13 @@ fn search<NODE: NodeType>(
                 break;
             }
 
-            if !td.board.is_legal(mv) {
-                continue;
-            }
-
-            if !td.board.see(mv, -79) {
+            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
 
             make_move(td, ply, mv);
 
-            let raised_beta = beta + cjp_margin;
-            let cjp_score = -qsearch::<NonPV>(td, -raised_beta, -raised_beta + 1, ply + 1);
+            let cjp_score = -qsearch::<NonPV>(td, -cjp_beta, -cjp_beta + 1, ply + 1);
 
             undo_move(td, mv);
 
@@ -550,7 +545,7 @@ fn search<NODE: NodeType>(
                 return Score::ZERO;
             }
 
-            if cjp_score >= beta + cjp_margin {
+            if cjp_score >= cjp_beta {
                 td.shared.tt.write(hash, 1, raw_eval, cjp_score, Bound::Lower, mv, ply, tt_pv, false);
                 return cjp_score;
             }
