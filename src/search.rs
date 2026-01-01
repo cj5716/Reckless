@@ -606,6 +606,7 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
+                td.stack[ply].best_move = mv;
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
@@ -617,6 +618,7 @@ fn search<NODE: NodeType>(
 
     // Singular Extensions (SE)
     let mut extension = 0;
+    let mut second_move = Move::NULL;
 
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
@@ -625,8 +627,10 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
+        td.stack[ply].best_move = Move::NULL;
         let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
+        second_move = td.stack[ply].best_move;
 
         if td.stopped {
             return Score::ZERO;
@@ -667,7 +671,7 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new(tt_move, second_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
 
@@ -942,6 +946,7 @@ fn search<NODE: NodeType>(
             if score > alpha {
                 bound = Bound::Exact;
                 best_move = mv;
+                td.stack[ply].best_move = mv;
 
                 if !NODE::ROOT && NODE::PV {
                     td.pv_table.update(ply as usize, mv);
@@ -1236,6 +1241,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
             if score > alpha {
                 best_move = mv;
+                td.stack[ply].best_move = mv;
 
                 if NODE::PV {
                     td.pv_table.update(ply as usize, mv);

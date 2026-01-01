@@ -8,6 +8,7 @@ use crate::{
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
+    SecondMove,
     GenerateNoisy,
     GoodNoisy,
     GenerateQuiet,
@@ -18,6 +19,7 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
+    second_move: Move,
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
@@ -25,12 +27,13 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub const fn new(tt_move: Move, second_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
+            second_move,
             threshold: None,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
+            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::SecondMove },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -40,6 +43,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            second_move: Move::NULL,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -51,6 +55,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            second_move: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -64,10 +69,18 @@ impl MovePicker {
 
     pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
         if self.stage == Stage::HashMove {
-            self.stage = Stage::GenerateNoisy;
+            self.stage = Stage::SecondMove;
 
             if td.board.is_pseudo_legal(self.tt_move) {
                 return Some(self.tt_move);
+            }
+        }
+
+        if self.stage == Stage::SecondMove {
+            self.stage = Stage::GenerateNoisy;
+
+            if !self.second_move.is_null() {
+                return Some(self.second_move);
             }
         }
 
@@ -81,7 +94,7 @@ impl MovePicker {
             while !self.list.is_empty() {
                 let index = self.find_best_score_index();
                 let entry = &self.list.remove(index);
-                if entry.mv == self.tt_move {
+                if entry.mv == self.tt_move || entry.mv == self.second_move {
                     continue;
                 }
 
@@ -116,7 +129,7 @@ impl MovePicker {
                 while !self.list.is_empty() {
                     let index = self.find_best_score_index();
                     let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move {
+                    if entry.mv == self.tt_move || entry.mv == self.second_move {
                         continue;
                     }
 
@@ -136,7 +149,7 @@ impl MovePicker {
             let mv = self.bad_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
 
-            if mv == self.tt_move {
+            if mv == self.tt_move || mv == self.second_move {
                 continue;
             }
 
@@ -166,7 +179,7 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            if mv == self.tt_move {
+            if mv == self.tt_move || mv == self.second_move {
                 entry.score = -32768;
                 continue;
             }
@@ -186,7 +199,7 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            if mv == self.tt_move {
+            if mv == self.tt_move || mv == self.second_move {
                 entry.score = -32768;
                 continue;
             }
