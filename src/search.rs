@@ -582,7 +582,7 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let mut probcut_depth = (depth - 4 - ((score - probcut_beta - 50) / 300).max(0).min(3)).max(0);
+            let mut probcut_depth = (depth - 4 - ((score - probcut_beta) / 300).max(0).min(3)).max(0);
             let og_probcut_depth = (depth - 4).max(0);
             let raised_probcut_beta = probcut_beta + (og_probcut_depth - probcut_depth) * 300;
 
