@@ -495,7 +495,6 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
-
     let rfp_margin = (1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
         + 500 * correction_value.abs() / 1024
         + 35 * (depth == 1) as i32)
@@ -512,17 +511,16 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Reductions (RFR)
-    if !tt_pv
+    if cut_node
+        && depth > 4
+        && !tt_pv
         && !excluded
         && is_valid(estimated_score)
-        && estimated_score >= beta + rfp_margin * 3 / 4
+        && estimated_score >= beta + (rfp_margin - 20).max(0)
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
         depth -= 1;
-        if depth <= 0 {
-            return qsearch::<NODE>(td, alpha, beta, ply);
-        }
     }
 
     // Null Move Pruning (NMP)
