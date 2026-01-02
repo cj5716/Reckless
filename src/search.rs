@@ -817,6 +817,10 @@ fn search<NODE: NodeType>(
                 reduction -= 1264;
             }
 
+            if !NODE::ROOT {
+                reduction -= td.stack[ply - 1].reduction / 7;
+            }
+
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
