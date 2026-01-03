@@ -818,7 +818,7 @@ fn search<NODE: NodeType>(
             }
 
             if !NODE::ROOT {
-                let divisor = 7 - ((move_count - 1) / 3).clamp(0, 3);
+                let divisor = 9 - ((move_count - 1) / 3).clamp(0, 4);
                 reduction -= td.stack[ply - 1].reduction / divisor;
             }
 
