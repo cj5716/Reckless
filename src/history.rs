@@ -65,16 +65,17 @@ impl Default for QuietHistory {
 
 struct NoisyHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 2]; 7],
+    buckets: [[[i16; 2]; 2]; 7],
 }
 
 impl NoisyHistoryEntry {
     const MAX_FACTORIZER: i32 = 4449;
     const MAX_BUCKET: i32 = 8148;
 
-    pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
-        let threatened = threats.contains(sq) as usize;
-        self.buckets[captured][threatened]
+    pub fn bucket(&self, threats: Bitboard, from: Square, to: Square, captured: PieceType) -> i16 {
+        let from_threatened = threats.contains(from) as usize;
+        let to_threatened = threats.contains(to) as usize;
+        self.buckets[captured][from_threatened][to_threatened]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
@@ -82,29 +83,32 @@ impl NoisyHistoryEntry {
         apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
     }
 
-    pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
-        let threatened = threats.contains(sq) as usize;
-        let entry = &mut self.buckets[captured][threatened];
+    pub fn update_bucket(&mut self, threats: Bitboard, from: Square, to: Square, captured: PieceType, bonus: i32) {
+        let from_threatened = threats.contains(from) as usize;
+        let to_threatened = threats.contains(to) as usize;
+        let entry = &mut self.buckets[captured][from_threatened][to_threatened];
         apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
     }
 }
 
 pub struct NoisyHistory {
-    // [piece][to][captured_piece_type][to_threatened]
+    // [piece][to][captured_piece_type][from_threatened][to_threatened]
     entries: Box<PieceToHistory<NoisyHistoryEntry>>,
 }
 
 impl NoisyHistory {
-    pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType) -> i32 {
-        let entry = &self.entries[piece][sq];
-        (entry.factorizer + entry.bucket(threats, sq, captured)) as i32
+    pub fn get(&self, threats: Bitboard, piece: Piece, from: Square, to: Square, captured: PieceType) -> i32 {
+        let entry = &self.entries[piece][to];
+        (entry.factorizer + entry.bucket(threats, from, to, captured)) as i32
     }
 
-    pub fn update(&mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, bonus: i32) {
-        let entry = &mut self.entries[piece][sq];
+    pub fn update(
+        &mut self, threats: Bitboard, piece: Piece, from: Square, to: Square, captured: PieceType, bonus: i32,
+    ) {
+        let entry = &mut self.entries[piece][to];
 
         entry.update_factorizer(bonus);
-        entry.update_bucket(threats, sq, captured, bonus);
+        entry.update_bucket(threats, from, to, captured, bonus);
     }
 }
 

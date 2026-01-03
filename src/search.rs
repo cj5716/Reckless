@@ -692,7 +692,7 @@ fn search<NODE: NodeType>(
                 + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.from(), mv.to(), captured)
         };
 
         if !NODE::ROOT && !is_loss(best_score) {
@@ -998,6 +998,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.update(
                 td.board.threats(),
                 td.board.moved_piece(best_move),
+                best_move.from(),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
                 noisy_bonus,
@@ -1014,7 +1015,14 @@ fn search<NODE: NodeType>(
 
         for &mv in noisy_moves.iter() {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
+            td.noisy_history.update(
+                td.board.threats(),
+                td.board.moved_piece(mv),
+                mv.from(),
+                mv.to(),
+                captured,
+                -noisy_malus,
+            );
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
@@ -1054,6 +1062,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.update(
                 td.board.prior_threats(),
                 td.board.piece_on(pcm_move.to()),
+                pcm_move.from(),
                 pcm_move.to(),
                 captured,
                 bonus,
