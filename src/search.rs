@@ -770,10 +770,10 @@ fn search<NODE: NodeType>(
             reduction -= 3326 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 2031;
+                reduction += 2104;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 1563;
+                reduction += 1636;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -815,6 +815,10 @@ fn search<NODE: NodeType>(
 
             if depth == 2 {
                 reduction -= 1264;
+            }
+
+            if !NODE::ROOT {
+                reduction -= td.stack[ply - 1].reduction.max(0) / 7;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
