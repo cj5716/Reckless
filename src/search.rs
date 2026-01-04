@@ -494,6 +494,15 @@ fn search<NODE: NodeType>(
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
+    // Weirdcut
+    let weirdcut_alpha = alpha - 50 - 50 * depth * depth;
+    if !NODE::PV && !in_check && depth > 6 && !cut_node && estimated_score <= weirdcut_alpha && alpha < 2048 {
+        let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, depth - 6, false, ply);
+        if score <= weirdcut_alpha {
+            return score;
+        }
+    }
+
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
