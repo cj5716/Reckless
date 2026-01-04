@@ -495,18 +495,32 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
+    let rfp_beta = beta + (1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
+                    + 500 * correction_value.abs() / 1024
+                    + 35 * (depth == 1) as i32).max(0);
     if !tt_pv
         && !excluded
         && is_valid(estimated_score)
-        && estimated_score >= beta
-        && estimated_score
-            >= beta + 1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
-                + 500 * correction_value.abs() / 1024
-                + 35 * (depth == 1) as i32
+        && estimated_score >= rfp_beta
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
         return beta + (estimated_score - beta) / 3;
+    }
+
+    // Reverse Futility Razoring (RFR)
+    if !tt_pv
+        && !excluded
+        && is_valid(estimated_score)
+        && estimated_score >= (rfp_beta * 15 + beta) / 16
+        && tt_bound != Bound::Upper
+        && !is_loss(beta)
+        && !is_win(estimated_score)
+    {
+        let score = qsearch::<NonPV>(td, rfp_beta - 1, rfp_beta, ply);
+        if score >= rfp_beta {
+            return score;
+        }
     }
 
     // Null Move Pruning (NMP)
