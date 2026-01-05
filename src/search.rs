@@ -495,7 +495,7 @@ fn search<NODE: NodeType>(
     }
 
     // Weirdcut
-    let weirdcut_alpha = alpha - 50 - 50 * depth * depth;
+    let weirdcut_alpha = alpha - 50 - 300 * depth;
     if !NODE::PV
         && !in_check
         && !cut_node
