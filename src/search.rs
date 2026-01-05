@@ -495,9 +495,9 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
-    let rfp_beta = beta + (1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
-                    + 500 * correction_value.abs() / 1024
-                    + 35 * (depth == 1) as i32).max(0);
+    let rfp_beta = beta + (1736 * depth * depth / 128 + 40 * depth - (126 * improving as i32)
+                    + 800 * correction_value.abs() / 1024
+                    + 56 * (depth == 1) as i32).max(0);
     if !tt_pv
         && !excluded
         && is_valid(estimated_score)
@@ -512,7 +512,7 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !excluded
         && is_valid(estimated_score)
-        && estimated_score >= (rfp_beta * 15 + beta) / 16
+        && estimated_score >= (rfp_beta * 5 + beta * 3) / 8
         && tt_bound != Bound::Upper
         && !is_loss(beta)
         && !is_win(estimated_score)
