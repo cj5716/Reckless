@@ -495,8 +495,8 @@ fn search<NODE: NodeType>(
     }
 
     // Weirdcut
-    let weirdcut_alpha = alpha - 50 - 200 * depth;
-    if !NODE::PV && !in_check && depth > 6 && estimated_score <= weirdcut_alpha && alpha < 2048 {
+    let weirdcut_alpha = alpha - 50 - 300 * depth;
+    if !NODE::PV && !in_check && depth > 6 && !cut_node && estimated_score <= weirdcut_alpha && alpha < 2048 {
         let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, depth - 6, false, ply);
         if score <= weirdcut_alpha {
             return score;
