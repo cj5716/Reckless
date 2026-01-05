@@ -504,7 +504,7 @@ fn search<NODE: NodeType>(
         && (!is_valid(tt_score) || tt_score <= weirdcut_alpha && !is_decisive(tt_score))
         && alpha < 2048
     {
-        let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, (depth - 6).max(1), false, ply);
+        let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, (depth - 3).max(1), false, ply);
         if score <= weirdcut_alpha {
             return score;
         }
