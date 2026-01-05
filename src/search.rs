@@ -498,14 +498,13 @@ fn search<NODE: NodeType>(
     let weirdcut_alpha = alpha - 50 - 300 * depth;
     if !NODE::PV
         && !in_check
-        && depth > 6
         && !cut_node
         && !potential_singularity
         && estimated_score <= weirdcut_alpha
         && (!is_valid(tt_score) || tt_score <= weirdcut_alpha && !is_decisive(tt_score))
         && alpha < 2048
     {
-        let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, depth - 6, false, ply);
+        let score = search::<NonPV>(td, weirdcut_alpha, weirdcut_alpha + 1, (depth - 6).max(1), false, ply);
         if score <= weirdcut_alpha {
             return score;
         }
