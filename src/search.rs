@@ -561,6 +561,7 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     let mut probcut_beta = beta + 257 - 75 * improving as i32;
+    let mut tt_move_scam = false;
 
     if cut_node
         && !is_decisive(beta)
@@ -613,6 +614,10 @@ fn search<NODE: NodeType>(
                 }
             }
         }
+
+        if potential_singularity {
+            tt_move_scam = true;
+        }
     }
 
     // Singular Extensions (SE)
@@ -654,7 +659,7 @@ fn search<NODE: NodeType>(
         else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
-            extension = -2;
+            extension = -1 - (tt_move_scam as i32);
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
