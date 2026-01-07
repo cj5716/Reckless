@@ -489,9 +489,24 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
-    // Razoring
-    if !NODE::PV && !in_check && estimated_score < alpha - 281 - 271 * depth * depth && alpha < 2048 {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+    // Alpha MultiProbcut
+    if !NODE::PV && !in_check && !potential_singularity && alpha < 2048 {
+
+        let bound1 = alpha - 181 - 171 * depth * depth;
+        if estimated_score <= bound1 {
+            let score1 = qsearch::<NonPV>(td, bound1, bound1 + 1, ply);
+            if score1 <= bound1 {
+                return score1;
+            }
+        }
+
+        let bound2 = alpha - 50 - 50 * depth * depth;
+        if estimated_score <= bound2 {
+            let score2 = search::<NonPV>(td, bound2, bound2 + 1, (depth - 3).max(1), false, ply);
+            if score2 <= bound2 {
+                return score2;
+            }
+        }
     }
 
     // Reverse Futility Pruning (RFP)
