@@ -135,7 +135,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     break;
                 }
 
-                td.highest_depth_as_best.insert(td.root_moves[0].mv, depth);
+                if score > alpha && index == 0 {
+                    td.highest_depth_as_best.insert(td.root_moves[0].mv, depth);
+                }
 
                 match score {
                     s if s <= alpha => {
