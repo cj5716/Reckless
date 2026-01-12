@@ -172,14 +172,16 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
     });
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
+    let bm_vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
     let mut votes: HashMap<&Move, i32> = HashMap::new();
     for td in threads.iter() {
         for (mv, depth) in td.highest_depth_as_best.iter() {
-            let vote_value =
-                if *mv == td.root_moves[0].mv { (td.root_moves[0].score - min_score + 10) * depth } else { depth * 3 };
-
-            *votes.entry(mv).or_default() += vote_value;
+            if *mv != td.root_moves[0].mv {
+                *votes.entry(mv).or_default() += depth * 3;
+            }
         }
+
+        *votes.entry(&td.root_moves[0].mv).or_default() += bm_vote_value(td);
     }
 
     let mut best = 0;
@@ -208,7 +210,9 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
                 let best_vote = votes[&best.root_moves[0].mv];
                 let current_vote = votes[&current.root_moves[0].mv];
 
-                !is_loss(current.root_moves[0].score) && current_vote > best_vote
+                !is_loss(current.root_moves[0].score)
+                    && (current_vote > best_vote
+                        || (current_vote == best_vote && bm_vote_value(current) > bm_vote_value(best)))
             };
 
             if is_better_candidate() {
