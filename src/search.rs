@@ -209,13 +209,26 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let short_term_score_trend =
+                (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+
+            let long_term_score_trend = if td.average_previous_score == Score::NONE {
+                1.0
+            } else {
+                (1.0 + 0.01 * (td.average_previous_score - td.root_moves[0].score) as f32).clamp(0.9, 1.1)
+            };
 
             let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
+            nodes_factor
+                * pv_stability
+                * eval_stability
+                * short_term_score_trend
+                * long_term_score_trend
+                * recapture_factor
+                * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
@@ -228,6 +241,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
     }
 
     td.previous_best_score = td.root_moves[0].score;
+    td.average_previous_score = if td.average_previous_score == Score::NONE {
+        td.root_moves[0].score
+    } else {
+        (td.root_moves[0].score + td.average_previous_score * 2) / 3
+    };
 }
 
 fn search<NODE: NodeType>(
