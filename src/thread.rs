@@ -143,7 +143,7 @@ pub struct ThreadData {
     pub root_delta: i32,
     pub sel_depth: i32,
     pub completed_depth: i32,
-    pub highest_depth_as_best: HashMap<&Move, i32>,
+    pub highest_depth_as_best: HashMap<Move, i32>,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
     pub root_in_tb: bool,

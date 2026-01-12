@@ -178,7 +178,7 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
             let vote_value =
                 if *mv == td.root_moves[0].mv { (td.root_moves[0].score - min_score + 10) * depth } else { depth * 3 };
 
-            *votes.entry(&mv).or_default() += vote_value;
+            *votes.entry(mv).or_default() += vote_value;
         }
     }
 
