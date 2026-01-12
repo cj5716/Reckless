@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
     Arc,
@@ -142,6 +143,7 @@ pub struct ThreadData {
     pub root_delta: i32,
     pub sel_depth: i32,
     pub completed_depth: i32,
+    pub highest_depth_as_best: HashMap<&Move, i32>,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
     pub root_in_tb: bool,
@@ -174,6 +176,7 @@ impl ThreadData {
             root_delta: 0,
             sel_depth: 0,
             completed_depth: 0,
+            highest_depth_as_best: HashMap::new(),
             nmp_min_ply: 0,
             previous_best_score: 0,
             root_in_tb: false,
