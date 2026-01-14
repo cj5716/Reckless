@@ -304,6 +304,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut was_singular = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -312,6 +313,7 @@ fn search<NODE: NodeType>(
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
+        was_singular = entry.was_singular;
 
         if !NODE::PV
             && !excluded
@@ -381,7 +383,7 @@ fn search<NODE: NodeType>(
             || (bound == Bound::Upper && score <= alpha)
         {
             let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-            td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, was_singular, false);
             return score;
         }
 
@@ -414,7 +416,7 @@ fn search<NODE: NodeType>(
         raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
 
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, was_singular, false);
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -486,6 +488,8 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
+    let likely_singularity = potential_singularity && was_singular;
+
     let mut improvement = 0;
 
     if is_valid(td.stack[ply - 2].eval) && !in_check {
@@ -510,6 +514,7 @@ fn search<NODE: NodeType>(
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
+                - 50 * (likely_singularity as i32)
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -617,7 +622,7 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
+                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, was_singular, false);
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
@@ -628,6 +633,7 @@ fn search<NODE: NodeType>(
 
     // Singular Extensions (SE)
     let mut extension = 0;
+    let mut singular = false;
 
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
@@ -644,6 +650,8 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
+            singular = true;
+
             let double_margin =
                 -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
@@ -1069,6 +1077,12 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
+    if !tt_move.is_null() && best_move == tt_move {
+        was_singular |= singular;
+    } else {
+        was_singular = false;
+    }
+
     if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
     }
@@ -1079,7 +1093,7 @@ fn search<NODE: NodeType>(
     }
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, was_singular, NODE::PV);
     }
 
     if !(in_check
@@ -1134,12 +1148,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut was_singular = false;
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
+        was_singular = entry.was_singular;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1197,6 +1213,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                     Move::NULL,
                     ply,
                     tt_pv,
+                    was_singular,
                     false,
                 );
             }
@@ -1280,7 +1297,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
+    td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, was_singular, false);
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
