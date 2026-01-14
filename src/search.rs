@@ -701,9 +701,9 @@ fn search<NODE: NodeType>(
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || eval >= beta + 20 {
-                        (3127 + 1089 * initial_depth * initial_depth) / 1024
+                        (3127 + if excluded { 777 } else { 1089 } * initial_depth * initial_depth) / 1024
                     } else {
-                        (1320 + 315 * initial_depth * initial_depth) / 1024
+                        (1320 + if excluded { 188 } else { 315 } * initial_depth * initial_depth) / 1024
                     };
 
             // Futility Pruning (FP)
