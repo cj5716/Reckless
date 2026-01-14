@@ -499,7 +499,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && estimated_score < alpha - 299 - 252 * depth * depth && alpha < 2048 {
+    if !NODE::PV && !in_check && !was_singular && estimated_score < alpha - 299 - 252 * depth * depth && alpha < 2048 {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
@@ -512,7 +512,6 @@ fn search<NODE: NodeType>(
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
-                - 32 * was_singular as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
