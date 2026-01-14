@@ -488,8 +488,6 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
-    let likely_singularity = potential_singularity && was_singular;
-
     let mut improvement = 0;
 
     if is_valid(td.stack[ply - 2].eval) && !in_check {
@@ -514,7 +512,7 @@ fn search<NODE: NodeType>(
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
-                - 50 * (likely_singularity as i32)
+                - 32 * was_singular as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
