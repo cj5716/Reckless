@@ -523,6 +523,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
+        && !was_singular
         && estimated_score >= beta
         && estimated_score >= eval
         && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
