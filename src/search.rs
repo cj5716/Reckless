@@ -626,15 +626,23 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
 
-        let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
-        let singular_depth = (depth - 1) / 2;
+        let mut singular_beta = tt_score;
+        let mut singular_depth = 1.max((depth - 1) / 4);
 
         td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        let mut score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
         if td.stopped {
             return Score::ZERO;
+        }
+
+        if score < singular_beta {
+            singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
+            singular_depth = (depth - 1) / 2;
+            td.stack[ply].excluded = tt_move;
+            score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+            td.stack[ply].excluded = Move::NULL;
         }
 
         if score < singular_beta {
