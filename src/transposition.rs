@@ -9,7 +9,7 @@ const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
 const ENTRIES_PER_CLUSTER: usize = 3;
 
-const AGE_CYCLE: u8 = 1 << 5;
+const AGE_CYCLE: u8 = 1 << 4;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
