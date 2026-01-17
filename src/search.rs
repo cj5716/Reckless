@@ -636,7 +636,7 @@ fn search<NODE: NodeType>(
 
         let mut score = -Score::INFINITE;
         let singular_depth = (depth - 1) / 2;
-        let singular_beta = tt_score - depth / 2 - depth * (tt_pv && !NODE::PV) as i32;
+        let singular_beta = tt_score - depth * 3 / 4 - depth * (tt_pv && !NODE::PV) as i32;
 
         if depth > 12 {
             let reduced_depth = 1.max((depth - 1) * 3 / 8);
