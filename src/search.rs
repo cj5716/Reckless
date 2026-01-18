@@ -481,7 +481,7 @@ fn search<NODE: NodeType>(
     }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
-        && tt_depth >= depth - 3
+        && tt_depth >= (depth - 3 - (tt_score - beta - 50) / 300).clamp(depth - 6, depth - 3).max(1)
         && tt_bound != Bound::Upper
         && is_valid(tt_score)
         && !is_decisive(tt_score);
