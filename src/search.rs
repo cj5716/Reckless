@@ -571,7 +571,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 269 - 72 * improving as i32;
+    let mut probcut_beta = beta + 309 - 10 * depth.clamp(1, 16) - 72 * improving as i32;
 
     if cut_node
         && !is_decisive(beta)
