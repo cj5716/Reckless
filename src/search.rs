@@ -575,7 +575,13 @@ fn search<NODE: NodeType>(
 
     if cut_node
         && !is_decisive(beta)
-        && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
+        && (!is_valid(tt_score)
+            || tt_score >= probcut_beta && !is_decisive(tt_score)
+            || tt_score >= beta
+                && !is_decisive(tt_score)
+                && estimated_score >= probcut_beta
+                && tt_bound == Bound::Lower
+                && tt_depth < 3)
         && !tt_move.is_quiet()
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
