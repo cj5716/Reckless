@@ -712,6 +712,8 @@ fn search<NODE: NodeType>(
                 && move_count
                     >= if improving || eval >= beta + 20 {
                         (3127 + 1075 * depth * depth) / 1024
+                    } else if best_score + (420 - 33 * move_count).max(0) <= alpha {
+                        (920 + 281 * depth * depth) / 1024
                     } else {
                         (1320 + 311 * depth * depth) / 1024
                     };
