@@ -59,10 +59,6 @@ impl Flags {
     pub const fn age(self) -> u8 {
         self.data >> 4
     }
-
-    pub fn reset_singular(&mut self) {
-        self.data &= !(1 << 3);
-    }
 }
 
 /// Type of the score returned by the search.
@@ -213,7 +209,6 @@ impl TranspositionTable {
         let entry = replacement_slot.unwrap();
 
         if !(entry.key == key && mv.is_null()) {
-            if entry.mv != mv { entry.flags.reset_singular(); }
             entry.mv = mv;
         }
 
