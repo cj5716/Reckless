@@ -416,7 +416,18 @@ fn search<NODE: NodeType>(
         raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
 
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, was_singular, false);
+        td.shared.tt.write(
+            hash,
+            TtDepth::SOME,
+            raw_eval,
+            Score::NONE,
+            Bound::None,
+            Move::NULL,
+            ply,
+            tt_pv,
+            was_singular,
+            false,
+        );
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -619,7 +630,18 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, was_singular, false);
+                td.shared.tt.write(
+                    hash,
+                    probcut_depth + 1,
+                    raw_eval,
+                    score,
+                    Bound::Lower,
+                    mv,
+                    ply,
+                    tt_pv,
+                    was_singular,
+                    false,
+                );
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
@@ -1145,12 +1167,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut tt_move = Move::NULL;
     let mut was_singular = false;
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_move = entry.mv;
         tt_pv |= entry.tt_pv;
         was_singular = entry.was_singular;
 
@@ -1293,6 +1317,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
+
+    if best_move != tt_move {
+        was_singular = false;
+    }
 
     td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, was_singular, false);
 

@@ -35,7 +35,9 @@ impl Flags {
     pub const fn new(bound: Bound, tt_pv: bool, was_singular: bool, age: u8) -> Self {
         debug_assert!(age <= AGE_MASK);
 
-        Self { data: (bound as u8) | ((tt_pv as u8) << 2) | ((was_singular as u8) << 3) | (age << 4) }
+        Self {
+            data: (bound as u8) | ((tt_pv as u8) << 2) | ((was_singular as u8) << 3) | (age << 4),
+        }
     }
 
     pub const fn bound(self) -> Bound {
@@ -176,8 +178,8 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool, was_singular: bool,
-        force: bool,
+        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
+        was_singular: bool, force: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
