@@ -948,6 +948,8 @@ fn search<NODE: NodeType>(
             }
         }
 
+        let mut alpha_raised = false;
+
         if score > best_score {
             best_score = score;
 
@@ -969,15 +971,16 @@ fn search<NODE: NodeType>(
                     depth -= 1;
                 }
 
+                alpha_raised = true;
                 alpha = score;
             }
         }
 
-        if mv != best_move && move_count < 32 {
+        if !alpha_raised {
             if is_quiet {
-                quiet_moves.push(mv);
+                if !quiet_moves.is_full() { quiet_moves.push(mv); }
             } else {
-                noisy_moves.push(mv);
+                if !noisy_moves.is_full() { noisy_moves.push(mv); }
             }
         }
     }

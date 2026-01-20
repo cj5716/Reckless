@@ -14,6 +14,10 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         Self { data, len: 0 }
     }
 
+    pub const fn is_full(&self) -> bool {
+        self.len == N
+    }
+
     pub const fn len(&self) -> usize {
         self.len
     }
