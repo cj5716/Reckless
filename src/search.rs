@@ -604,7 +604,7 @@ fn search<NODE: NodeType>(
                 if score >= raised_probcut_beta {
                     probcut_beta = raised_probcut_beta;
                     probcut_depth = reduced_depth;
-                } else if score >= probcut_beta {
+                } else if score >= beta {
                     score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
                 }
             } else if score >= probcut_beta && probcut_depth > 0 {
