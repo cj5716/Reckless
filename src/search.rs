@@ -593,21 +593,22 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let mut probcut_depth = (depth - 4 - ((score - probcut_beta - 50) / 295).clamp(0, 3)).max(0);
-            let og_probcut_depth = (depth - 4).max(0);
-            let raised_probcut_beta =
-                (probcut_beta + (og_probcut_depth - probcut_depth) * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
+            let mut probcut_depth = (depth - 4).max(0);
+            let reduction = ((score - probcut_beta - 50) / 295).clamp(0, 3).min(probcut_depth);
+            let reduced_depth = probcut_depth - reduction;
 
-            if score >= probcut_beta && probcut_depth > 0 {
-                score =
-                    -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
+            if score >= probcut_beta && reduced_depth > 0 {
+                let raised_probcut_beta = (probcut_beta + reduction * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
+                score = -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, reduced_depth, false, ply + 1);
 
-                if score < raised_probcut_beta && probcut_beta < raised_probcut_beta {
-                    probcut_depth = og_probcut_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                } else {
+                if score >= raised_probcut_beta {
                     probcut_beta = raised_probcut_beta;
+                    probcut_depth = reduced_depth;
                 }
+            }
+
+            if score >= probcut_beta && probcut_depth > reduced_depth {
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
             }
 
             undo_move(td, mv);
