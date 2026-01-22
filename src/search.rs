@@ -572,6 +572,7 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     let mut probcut_beta = beta + 269 - 72 * improving as i32;
+    let mut probcut_depth = (depth - 4).max(0);
 
     if cut_node
         && !is_decisive(beta)
@@ -593,21 +594,20 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let mut probcut_depth = (depth - 4).max(0);
             let reduction = ((score - probcut_beta - 50) / 295).clamp(0, 3).min(probcut_depth);
             let reduced_depth = probcut_depth - reduction;
+            let raised_probcut_beta = (probcut_beta + reduction * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
 
-            if score >= probcut_beta && reduced_depth > 0 {
-                let raised_probcut_beta = (probcut_beta + reduction * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
+            if score >= probcut_beta && reduced_depth > 0 && reduction > 0 {
                 score = -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, reduced_depth, false, ply + 1);
 
                 if score >= raised_probcut_beta {
                     probcut_beta = raised_probcut_beta;
                     probcut_depth = reduced_depth;
+                } else if score >= probcut_beta {
+                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
                 }
-            }
-
-            if score >= probcut_beta && probcut_depth > reduced_depth {
+            } else if score >= probcut_beta && probcut_depth > 0 {
                 score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
             }
 
