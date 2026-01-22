@@ -497,7 +497,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // ProbCut
-    let probcut_alpha = alpha - 50 - 200 * depth;
+    let probcut_alpha = alpha - 550 - 35 * depth * (depth * depth).ilog2() as i32;
     if !NODE::PV
         && !in_check
         && !potential_singularity
