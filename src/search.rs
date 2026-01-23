@@ -508,7 +508,7 @@ fn search<NODE: NodeType>(
     {
         let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
-        let probcut_depth = depth - 3;
+        let probcut_depth = depth - 5;
         if score <= probcut_alpha && probcut_depth > 0 {
             score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
         }
