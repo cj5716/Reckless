@@ -506,10 +506,11 @@ fn search<NODE: NodeType>(
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && alpha < 2048
     {
-        let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
+        let scout_depth = if depth >= 4 { 1 } else { 0 };
+        let mut score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, scout_depth, false, ply);
 
-        let probcut_depth = depth - 5;
-        if score <= probcut_alpha && probcut_depth > 0 {
+        let probcut_depth = depth - 4;
+        if score <= probcut_alpha && probcut_depth > scout_depth {
             score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
         }
 
