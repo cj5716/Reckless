@@ -497,18 +497,21 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // ProbCut
-    let probcut_alpha = alpha - 50 - 300 * depth;
+    let probcut_alpha = alpha - 500 - 30 * depth;
     if !NODE::PV
         && !in_check
         && !potential_singularity
         && !cut_node
         && estimated_score <= probcut_alpha
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
-        && alpha < 2048
+        && tt_bound != Bound::Lower
+        && !(tt_move.is_some()
+            && tt_move.is_capture()
+            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
         let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
-        let probcut_depth = depth - 4;
+        let probcut_depth = depth - 3;
         if score <= probcut_alpha && probcut_depth > 0 {
             score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
         }
