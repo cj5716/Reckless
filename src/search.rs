@@ -503,7 +503,7 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && !cut_node
         && estimated_score <= probcut_alpha
-        && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score) || tt_depth < 4)
+        && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && tt_bound != Bound::Lower
     {
         let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
