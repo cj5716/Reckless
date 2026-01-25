@@ -505,9 +505,21 @@ fn search<NODE: NodeType>(
         && estimated_score <= probcut_alpha
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && tt_bound != Bound::Lower
-        && !(tt_move.is_some()
-            && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && if tt_move.is_null() {
+            true
+        } else if tt_move.is_quiet() {
+            let history = td.quiet_history.get(td.board.threats(), td.board.side_to_move(), tt_move)
+                + td.conthist(ply, 1, tt_move)
+                + td.conthist(ply, 2, tt_move);
+
+            history < 11111
+        } else {
+            let captured = td.board.piece_on(tt_move.to()).piece_type();
+            let history =
+                td.noisy_history.get(td.board.threats(), td.board.moved_piece(tt_move), tt_move.to(), captured);
+
+            history < 7777
+        }
     {
         let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
