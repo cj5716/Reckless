@@ -571,7 +571,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 269 - 72 * improving as i32;
+    let probcut_beta = beta + 269 - 72 * improving as i32;
 
     if cut_node
         && !is_decisive(beta)
@@ -591,24 +591,38 @@ fn search<NODE: NodeType>(
 
             make_move(td, ply, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
+            let (success, score, probcut_depth, uncertainty) = (|| {
+                let qs_score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let mut probcut_depth = (depth - 4 - ((score - probcut_beta - 50) / 295).clamp(0, 3)).max(0);
-            let og_probcut_depth = (depth - 4).max(0);
-            let raised_probcut_beta =
-                (probcut_beta + (og_probcut_depth - probcut_depth) * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
-
-            if score >= probcut_beta && probcut_depth > 0 {
-                score =
-                    -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
-
-                if score < raised_probcut_beta && probcut_beta < raised_probcut_beta {
-                    probcut_depth = og_probcut_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                } else {
-                    probcut_beta = raised_probcut_beta;
+                if qs_score < probcut_beta {
+                    return (false, qs_score, 0, probcut_beta - beta);
                 }
-            }
+
+                let try1_reduction = ((qs_score - probcut_beta - 50) / 295).clamp(0, 3).min(depth - 4);
+                let try1_beta = probcut_beta + try1_reduction * 282;
+                let try1_depth = depth - 4 - try1_reduction;
+
+                if try1_depth <= 0 {
+                    debug_assert!(qs_score >= try1_beta);
+                    return (true, qs_score, 0, probcut_beta - beta);
+                }
+
+                let try1_score = -search::<NonPV>(td, -try1_beta, -try1_beta + 1, try1_depth, false, ply + 1);
+                if try1_score >= try1_beta {
+                    return (true, try1_score, try1_depth, try1_beta - beta);
+                }
+
+                let try2_beta = probcut_beta;
+                let try2_depth = depth - 4;
+                debug_assert!(try1_depth <= try2_depth);
+
+                if try2_beta < try1_beta {
+                    let try2_score = -search::<NonPV>(td, -try2_beta, -try2_beta + 1, try2_depth, false, ply + 1);
+                    (try2_score >= try2_beta, try2_score, try2_depth, try2_beta - beta)
+                } else {
+                    (false, try1_score, try1_depth, try1_beta - beta)
+                }
+            })();
 
             undo_move(td, mv);
 
@@ -616,11 +630,11 @@ fn search<NODE: NodeType>(
                 return Score::ZERO;
             }
 
-            if score >= probcut_beta {
+            if success {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
+                    return score - uncertainty;
                 }
             }
         }
