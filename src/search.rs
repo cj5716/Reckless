@@ -599,7 +599,7 @@ fn search<NODE: NodeType>(
                 }
 
                 let try1_reduction = ((qs_score - probcut_beta - 50) / 295).clamp(0, 3).min(depth - 4);
-                let try1_beta = probcut_beta + try1_reduction * 282;
+                let try1_beta = (probcut_beta + try1_reduction * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
                 let try1_depth = depth - 4 - try1_reduction;
 
                 if try1_depth <= 0 {
