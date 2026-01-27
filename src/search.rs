@@ -500,29 +500,21 @@ fn search<NODE: NodeType>(
     let probcut_alpha = alpha - 500 - 30 * depth;
     if !NODE::PV
         && !in_check
-        && !potential_singularity
+        && !excluded
         && !cut_node
         && estimated_score <= probcut_alpha
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && tt_bound != Bound::Lower
-        && !(tt_move.is_some()
-            && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
-        let scout_depth = if depth >= 7 { 1 } else { 0 };
-        let mut score = if scout_depth == 0 {
-            qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply)
-        } else {
-            search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, scout_depth, false, ply)
-        };
+        let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
         let probcut_depth = depth - 3;
-        if score <= probcut_alpha && probcut_depth > scout_depth {
+        if score <= probcut_alpha && probcut_depth > 0 {
             score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
         }
 
         if score <= probcut_alpha {
-            return score;
+            return score + (alpha - probcut_alpha);
         }
     }
 
