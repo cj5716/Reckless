@@ -505,6 +505,9 @@ fn search<NODE: NodeType>(
         && estimated_score <= probcut_alpha
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && tt_bound != Bound::Lower
+        && !(tt_move.is_some()
+            && tt_move.is_capture()
+            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
         let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
