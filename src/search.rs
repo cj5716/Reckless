@@ -509,10 +509,15 @@ fn search<NODE: NodeType>(
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
-        let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
+        let scout_depth = if depth >= 7 { 1 } else { 0 };
+        let mut score = if scout_depth == 0 {
+            qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply)
+        } else {
+            search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, scout_depth, false, ply)
+        };
 
         let probcut_depth = depth - 3;
-        if score <= probcut_alpha && probcut_depth > 0 {
+        if score <= probcut_alpha && probcut_depth > scout_depth {
             score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
         }
 
