@@ -42,7 +42,7 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let rhs1_squared = simd::mul_low_i16(rhs1_clipped, rhs1_clipped);
             let rhs2_squared = simd::mul_low_i16(rhs2_clipped, rhs2_clipped);
 
-            dbg_assert!(FT_SHIFT <= 16);
+            debug_assert!(FT_SHIFT <= 16);
             const REQUIRES_SHIFT_LEFT : bool = FT_SHIFT != 16;
 
             let shifted1 = if REQUIRES_SHIFT_LEFT { simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped) } else { lhs1_clipped };
