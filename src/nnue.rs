@@ -63,13 +63,13 @@ const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
 const LHS_FT_QUANT: i32 = 255;
-const RHS_FT_QUANT: i32 = 127;
+const RHS_FT_QUANT: i32 = 181;
 const L1_QUANT: i32 = 64;
 
 #[cfg(target_feature = "avx512f")]
-const FT_SHIFT: u32 = 15;
+const FT_SHIFT: u32 = 16;
 #[cfg(not(target_feature = "avx512f"))]
-const FT_SHIFT: i32 = 15;
+const FT_SHIFT: i32 = 16;
 
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (LHS_FT_QUANT * RHS_FT_QUANT * RHS_FT_QUANT * L1_QUANT) as f32;
 
