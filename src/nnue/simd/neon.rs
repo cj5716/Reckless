@@ -27,8 +27,12 @@ pub unsafe fn min_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
     vminq_s16(a, b)
 }
 
-pub unsafe fn shift_left_i16<const SHIFT: i32>(a: int16x8_t) -> int16x8_t {
-    vshlq_n_s16::<SHIFT>(a)
+pub unsafe fn shift_right_i16<const SHIFT: i32>(a: int16x8_t) -> int16x8_t {
+    vshrq_n_s16::<SHIFT>(a)
+}
+
+pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
+    vmulq_s16(a, b)
 }
 
 pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
