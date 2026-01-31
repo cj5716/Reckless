@@ -63,6 +63,7 @@ const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
 const FT_QUANT: i32 = 255;
+const FT_ACT_SHIFT: u32 = 2;
 const L1_QUANT: i32 = 64;
 
 #[cfg(target_feature = "avx512f")]
