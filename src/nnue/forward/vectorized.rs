@@ -1,6 +1,7 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_ACT_SHIFT, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
+        SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
         simd,
     },
@@ -44,7 +45,7 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let product1 = simd::mul_high_i16(shifted1, rhs1_clipped);
             let product2 = simd::mul_high_i16(shifted2, rhs2_clipped);
 
-            let packed = simd::max_i8(simd::packus(product1, product2), zero_i8);
+            let packed = simd::max_i8(simd::packs(product1, product2), zero_i8);
             let unpacked = simd::permute(packed);
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
