@@ -72,10 +72,10 @@ const FT_SHIFT: i32 = 9;
 
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
-const L1_INV_K: f32 = (1.0 / 6.0) as f32;
-const L1_OFFSET: f32 = 0.5_f32;
-const L2_INV_K: f32 = (1.0 / 6.0) as f32;
-const L2_OFFSET: f32 = 0.5_f32;
+const L1_INV_K: f32 = 0.2_f32;
+const L1_OFFSET: f32 = 0.6_f32;
+const L2_INV_K: f32 = 0.2_f32;
+const L2_OFFSET: f32 = 0.6_f32;
 
 #[rustfmt::skip]
 const INPUT_BUCKETS_LAYOUT: [usize; 64] = [
