@@ -480,6 +480,28 @@ fn search<NODE: NodeType>(
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
+    // ProbCut
+    let probcut_alpha = alpha - 500 - 30 * depth;
+    if !NODE::PV
+        && depth > 3
+        && (!in_check || is_valid(tt_score) && tt_score <= probcut_alpha)
+        && !potential_singularity
+        && !cut_node
+        && estimated_score <= probcut_alpha
+        && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
+        && tt_bound != Bound::Lower
+    {
+        let mut score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, 1, false, ply);
+
+        if score <= probcut_alpha {
+            score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, depth - 3, false, ply);
+        }
+
+        if score <= probcut_alpha {
+            return score;
+        }
+    }
+
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
