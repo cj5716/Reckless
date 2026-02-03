@@ -475,15 +475,9 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
-    // Razoring
-    if !NODE::PV && !in_check && estimated_score < alpha - 299 - 252 * depth * depth && alpha < 2048 {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
-    }
-
     // ProbCut
     let probcut_alpha = alpha - 500 - 30 * depth;
     if !NODE::PV
-        && depth > 3
         && (!in_check || is_valid(tt_score) && tt_score <= probcut_alpha)
         && !potential_singularity
         && !cut_node
@@ -491,10 +485,11 @@ fn search<NODE: NodeType>(
         && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         && tt_bound != Bound::Lower
     {
-        let mut score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, 1, false, ply);
+        let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
-        if score <= probcut_alpha {
-            score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, depth - 3, false, ply);
+        let pc_depth = depth - 2;
+        if score <= probcut_alpha && pc_depth > 0 {
+            score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, pc_depth, false, ply);
         }
 
         if score <= probcut_alpha {
