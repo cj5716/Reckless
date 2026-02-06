@@ -138,7 +138,7 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
         let swish_j = simd::mul_f32(*vector_j, simd::clamp_f32(simd::mul_add_f32(*vector_j, inv_k, offset), zero, one));
 
         *vector_i = simd::mul_f32(*vector_i, swish_j);
-        *vector_j = simd::mul_f32(*vector_j, swish_i);
+        *vector_j = swish_i;
     }
 
     output
