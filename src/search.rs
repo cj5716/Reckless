@@ -626,10 +626,13 @@ fn search<NODE: NodeType>(
                 -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
                 48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+            let quadruple_margin =
+                420 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
             extension += (score < singular_beta - triple_margin) as i32;
+            extension += (score < singular_beta - quadruple_margin) as i32;
 
             if extension > 1 && depth < 14 {
                 depth += 1;
