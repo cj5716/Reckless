@@ -60,7 +60,7 @@ const OUTPUT_BUCKETS: usize = 8;
 
 const L1_SIZE: usize = 512;
 const L2_SIZE: usize = 16;
-const L3_SIZE: usize = 32;
+const L3_SIZE: usize = 64;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
@@ -553,7 +553,7 @@ impl Network {
             let l2_out = forward::propagate_l2(l1_out, bucket);
             let l3_out = forward::propagate_l3(l2_out, bucket);
 
-            (l3_out * NETWORK_SCALE as f32) as i32
+            ((l3_out * NETWORK_SCALE as f32) as i32).clamp(-16384, 16384)
         }
     }
 }
