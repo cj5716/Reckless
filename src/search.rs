@@ -764,6 +764,10 @@ fn search<NODE: NodeType>(
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
 
+            if best_move.is_null() && extension > 0 {
+                reduction += 500 * extension * move_count.ilog2() as i32;
+            }
+
             if tt_pv {
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
