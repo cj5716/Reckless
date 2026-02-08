@@ -18,6 +18,8 @@ use crate::{
 #[allow(unused_imports)]
 use crate::misc::{dbg_hit, dbg_stats};
 
+use std::sync::atomic::Ordering;
+
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Report {
     None,
@@ -48,7 +50,7 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn start(td: &mut ThreadData, report: Report) {
+pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
     td.stopped = false;
 
@@ -79,9 +81,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
+    let mut depth = 1;
 
     // Iterative Deepening
-    for depth in 1..MAX_PLY as i32 {
+    while depth <= MAX_PLY as i32 {
         best_move_changes /= 2;
 
         td.sel_depth = 0;
@@ -222,6 +225,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
+            td.shared.soft_limit_hit.fetch_add(1, Ordering::Relaxed);
+        } else {
+            depth += 1;
+        }
+
+        if td.shared.soft_limit_hit.load(Ordering::Relaxed) >= (thread_count / 2).max(1) {
             break;
         }
     }

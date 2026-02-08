@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::thread::{Status, ThreadData};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Limits {
     Infinite,
     Depth(i32),
@@ -14,6 +14,7 @@ pub enum Limits {
 
 const TIME_OVERHEAD_MS: u64 = 15;
 
+#[derive(Clone, Copy, Debug)]
 pub struct TimeManager {
     limits: Limits,
     start_time: Instant,
@@ -78,6 +79,10 @@ impl TimeManager {
 
     pub fn check_time(&self, td: &ThreadData) -> bool {
         if td.completed_depth == 0 {
+            return false;
+        }
+
+        if td.id != 0 {
             return false;
         }
 
