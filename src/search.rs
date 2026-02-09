@@ -511,8 +511,6 @@ fn search<NODE: NodeType>(
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
-        debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
-
         let r = (5154 + 271 * depth + 535 * (estimated_score - beta).clamp(0, 1073) / 128) / 1024;
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
