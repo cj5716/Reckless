@@ -101,6 +101,7 @@ pub struct SharedContext {
     pub nodes: Counter,
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
+    pub total_completed_depth: AtomicU64,
     pub history: *const SharedCorrectionHistory,
     pub replicator: NumaReplicator<SharedCorrectionHistory>,
 }
@@ -115,6 +116,7 @@ impl Default for SharedContext {
             nodes: Counter::default(),
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
+            total_completed_depth: AtomicU64::new(0),
             history: unsafe { replicator.get() },
             replicator,
         }

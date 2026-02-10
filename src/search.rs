@@ -117,6 +117,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             // Aspiration Windows
             delta += average[td.pv_index] * average[td.pv_index] / 23660;
 
+            let avg_depth = td.shared.total_completed_depth.load(Ordering::Acquire) as f64 / thread_count as f64;
+            delta = ((delta as f64) * 1.0 - (avg_depth - depth as f64).clamp(0.0, 3.0) / 6.0) as i32;
+
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
@@ -168,7 +171,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         if !td.stopped {
+            let delta = depth - td.completed_depth;
             td.completed_depth = depth;
+
+            td.shared.total_completed_depth.fetch_add(delta as u64, Ordering::AcqRel);
         }
 
         if report == Report::Full

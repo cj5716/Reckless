@@ -76,10 +76,10 @@ impl ThreadPool {
         shared.tb_hits.reset();
         shared.soft_stop_votes.store(0, Ordering::Release);
         shared.status.set(Status::RUNNING);
+        shared.total_completed_depth.store(0, Ordering::Release);
 
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();
-
             let thread_count = self.vector.len();
 
             let (t1, rest) = self.vector.split_first_mut().unwrap();
