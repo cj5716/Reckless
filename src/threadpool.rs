@@ -2,6 +2,7 @@ use std::{
     ops::Index,
     sync::{
         Arc, Condvar, Mutex,
+        atomic::Ordering,
         mpsc::{Receiver, SyncSender},
     },
     thread::Scope,
@@ -74,18 +75,20 @@ impl ThreadPool {
         shared.nodes.reset();
         shared.tb_hits.reset();
         shared.status.set(Status::RUNNING);
+        shared.total_completed_depth.store(0, Ordering::Release);
 
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();
+            let thread_count = self.vector.len();
 
             let (t1, rest) = self.vector.split_first_mut().unwrap();
             let (w1, rest_workers) = self.workers.split_first().unwrap();
 
             handlers.push(scope.spawn_into(
-                || {
+                move || {
                     t1.time_manager = time_manager;
 
-                    search::start(t1, report);
+                    search::start(t1, report, thread_count);
                     shared.status.set(Status::STOPPED);
                 },
                 w1,
@@ -97,7 +100,7 @@ impl ThreadPool {
                         t.id = index + 1;
                         t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
 
-                        search::start(t, Report::None);
+                        search::start(t, Report::None, thread_count);
                     },
                     w,
                 ));

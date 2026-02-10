@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
@@ -48,7 +50,7 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn start(td: &mut ThreadData, report: Report) {
+pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
     td.stopped = false;
 
@@ -81,7 +83,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut best_move_changes = 0;
 
     // Iterative Deepening
-    for depth in 1..MAX_PLY as i32 {
+    let mut depth = 1;
+    while depth < MAX_PLY as i32 {
         best_move_changes /= 2;
 
         td.sel_depth = 0;
@@ -170,7 +173,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         if !td.stopped {
+            let delta = depth - td.completed_depth;
             td.completed_depth = depth;
+
+            td.shared.total_completed_depth.fetch_add(delta as u64, Ordering::AcqRel);
         }
 
         if report == Report::Full
@@ -224,6 +230,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
         if td.time_manager.soft_limit(td, multiplier) {
             break;
         }
+
+        depth += if (td.completed_depth + 2) as u64 * thread_count as u64
+            <= td.shared.total_completed_depth.load(Ordering::Acquire)
+        {
+            2
+        } else {
+            1
+        };
     }
 
     if report == Report::Minimal {
