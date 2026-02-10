@@ -231,7 +231,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
-        depth += if (td.completed_depth + 2) as u64 * thread_count as u64
+        depth += if (td.completed_depth + 3) as u64 * thread_count as u64
             <= td.shared.total_completed_depth.load(Ordering::Acquire)
         {
             2
