@@ -487,7 +487,7 @@ fn search<NODE: NodeType>(
         && estimated_score >= beta
         && estimated_score
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
-                + 519 * correction_value.abs() / 1024
+                + 349 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
@@ -621,9 +621,9 @@ fn search<NODE: NodeType>(
 
         if score < singular_beta {
             let double_margin =
-                200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+                200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 11 * correction_value.abs() / 128;
             let triple_margin =
-                288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128 + 32;
+                288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 11 * correction_value.abs() / 128 + 32;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
@@ -745,7 +745,7 @@ fn search<NODE: NodeType>(
             let mut reduction = 250 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 65 * move_count;
-            reduction -= 3183 * correction_value.abs() / 1024;
+            reduction -= 2140 * correction_value.abs() / 1024;
 
             if is_quiet {
                 reduction += 1972;
@@ -814,7 +814,7 @@ fn search<NODE: NodeType>(
             let mut reduction = 238 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 57 * move_count;
-            reduction -= 2513 * correction_value.abs() / 1024;
+            reduction -= 1690 * correction_value.abs() / 1024;
 
             if is_quiet {
                 reduction += 1427;
