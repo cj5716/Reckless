@@ -75,6 +75,7 @@ impl ThreadPool {
         shared.nodes.reset();
         shared.tb_hits.reset();
         shared.soft_stop_votes.store(0, Ordering::Release);
+        shared.highest_completed_depth.store(0, Ordering::Release);
         shared.status.set(Status::RUNNING);
 
         std::thread::scope(|scope| {

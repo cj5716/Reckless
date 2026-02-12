@@ -82,9 +82,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
+    let mut depth = 1;
 
     // Iterative Deepening
-    for depth in 1..MAX_PLY as i32 {
+    while depth < MAX_PLY as i32 {
         best_move_changes /= 2;
 
         td.sel_depth = 0;
@@ -243,6 +244,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.stopped = true;
             break;
         }
+
+        let best_depth = td.shared.highest_completed_depth.fetch_max(td.completed_depth, Ordering::AcqRel);
+        depth += if !soft_stop_voted && td.completed_depth + 4 < best_depth { 2 } else { 1 };
     }
 
     if report == Report::Minimal {
