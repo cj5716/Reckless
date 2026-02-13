@@ -674,6 +674,7 @@ fn search<NODE: NodeType>(
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
+    let mut alpha_raises = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
@@ -767,6 +768,7 @@ fn search<NODE: NodeType>(
 
             reduction -= 65 * move_count;
             reduction -= 3183 * correction_value.abs() / 1024;
+            reduction += 1024 * alpha_raises;
 
             if is_quiet {
                 reduction += 1972;
@@ -836,6 +838,7 @@ fn search<NODE: NodeType>(
 
             reduction -= 57 * move_count;
             reduction -= 2513 * correction_value.abs() / 1024;
+            reduction += 1024 * alpha_raises;
 
             if is_quiet {
                 reduction += 1427;
@@ -943,11 +946,11 @@ fn search<NODE: NodeType>(
                     break;
                 }
 
-                if depth > 2 && depth < 17 && !is_decisive(score) {
-                    depth -= 1;
-                }
-
                 alpha = score;
+
+                if !is_decisive(score) {
+                    alpha_raises += 1;
+                }
             }
         }
 
