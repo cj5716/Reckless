@@ -672,10 +672,10 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
+    let mut moves_since_alpha_raise = 0_i32;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
-    let mut alpha_raises = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
@@ -687,6 +687,7 @@ fn search<NODE: NodeType>(
         }
 
         move_count += 1;
+        moves_since_alpha_raise += 1;
         current_search_count = 0;
         td.stack[ply].move_count = move_count;
 
@@ -760,11 +761,9 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count >= 2 {
-            let mut reduction = 250 * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 250 * (moves_since_alpha_raise.ilog2() * depth.ilog2()) as i32;
 
-            reduction -= 65 * move_count;
             reduction -= 3183 * correction_value.abs() / 1024;
-            reduction += 1300 * alpha_raises;
 
             if is_quiet {
                 reduction += 1972;
@@ -950,10 +949,7 @@ fn search<NODE: NodeType>(
                 }
 
                 alpha = score;
-
-                if !is_decisive(score) {
-                    alpha_raises += 1;
-                }
+                moves_since_alpha_raise = 0;
             }
         }
 
