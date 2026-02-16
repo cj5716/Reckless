@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, AtomicUsize, Ordering},
+    atomic::{AtomicI64, AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -101,6 +101,9 @@ pub struct SharedContext {
     pub nodes: Counter,
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
+    pub sum_scores: AtomicI64,
+    pub sum_scores_squared: AtomicI64,
+    pub threads_completed_d1: AtomicUsize,
     pub history: *const SharedCorrectionHistory,
     pub replicator: NumaReplicator<SharedCorrectionHistory>,
 }
@@ -115,6 +118,9 @@ impl Default for SharedContext {
             nodes: Counter::default(),
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
+            sum_scores: AtomicI64::new(0),
+            sum_scores_squared: AtomicI64::new(0),
+            threads_completed_d1: AtomicUsize::new(0),
             history: unsafe { replicator.get() },
             replicator,
         }

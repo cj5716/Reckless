@@ -82,6 +82,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
+    let mut d1_reported = false;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -210,6 +211,36 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
+        let curr = td.root_moves[0].score as i64;
+        let prev = if td.root_moves[0].previous_score == -Score::INFINITE {
+            0_i64
+        } else {
+            td.root_moves[0].previous_score as i64
+        };
+        let score_delta = curr - prev;
+        let score_squared_delta = curr * curr - prev * prev;
+        td.shared.sum_scores.fetch_add(score_delta, Ordering::AcqRel);
+        td.shared.sum_scores_squared.fetch_add(score_squared_delta, Ordering::AcqRel);
+
+        if !d1_reported {
+            td.shared.threads_completed_d1.fetch_add(1, Ordering::AcqRel);
+            d1_reported = true;
+        }
+
+        let eval_divergence =
+            if thread_count == 1 || td.shared.threads_completed_d1.load(Ordering::Acquire) != thread_count {
+                1.0
+            } else {
+                let sum_sqr = td.shared.sum_scores_squared.load(Ordering::Acquire);
+                let sum = td.shared.sum_scores.load(Ordering::Acquire);
+                let sub1 = thread_count - 1;
+                let a = sum_sqr as f64 / sub1 as f64;
+                let b = (sum * sum) as f64 / (thread_count * sub1) as f64;
+                let factor = 1.0_f64 - 0.25_f64 / sub1 as f64 + 0.03125_f64 / (sub1 * sub1) as f64;
+
+                (a - b).sqrt() / factor
+            };
+
         let multiplier = || {
             let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
 
@@ -217,11 +248,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
 
+            let eval_divergence = (1.0 + (eval_divergence - 17.0) / 80.0).clamp(0.80, 1.20) as f32;
+
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            nodes_factor * pv_stability * eval_stability * eval_divergence * score_trend * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
