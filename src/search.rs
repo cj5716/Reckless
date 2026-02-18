@@ -739,10 +739,11 @@ fn search<NODE: NodeType>(
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
+            let adjust = (alpha - estimated_score).clamp(-100, 100);
             let threshold = if is_quiet {
-                (-16 * depth * depth + 52 * depth - 21 * history / 1024 + 22).min(0)
+                (-16 * depth * depth + 52 * depth - 21 * history / 1024 + adjust - 7).min(0)
             } else {
-                (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
+                (-8 * depth * depth - 36 * depth - 32 * history / 1024 + adjust - 18).min(0)
             };
 
             if !td.board.see(mv, threshold) {
