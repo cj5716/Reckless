@@ -19,27 +19,33 @@ pub struct TimeManager {
     limits: Limits,
     start_time: Instant,
     soft_bound: Duration,
+    firm_bound: Duration,
     hard_bound: Duration,
 }
 
 impl TimeManager {
     pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
         let soft;
+        let firm;
         let hard;
 
         match limits {
             Limits::Time(ms) => {
                 soft = ms;
+                firm = ms;
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
                 let soft_scale = 0.024 + 0.042 * (1.0 - (-0.045 * fullmove_number as f64).exp());
+                let firm_scale = 0.622;
                 let hard_scale = 0.742;
 
                 let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
+                let firm_bound = (firm_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
                 let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
 
                 soft = soft_bound.min(main.saturating_sub(move_overhead));
+                firm = firm_bound.min(main.saturating_sub(move_overhead));
                 hard = hard_bound.min(main.saturating_sub(move_overhead));
             }
             Limits::Cyclic(main, inc, moves) => {
@@ -47,10 +53,12 @@ impl TimeManager {
                 let base = (main as f64 / moves as f64) + 0.75 * inc as f64;
 
                 soft = ((1.0 * base) as u64).min(main + inc);
+                firm = ((5.0 * base) as u64).min(main + inc);
                 hard = ((5.0 * base) as u64).min(main + inc);
             }
             _ => {
                 soft = u64::MAX;
+                firm = u64::MAX;
                 hard = u64::MAX;
             }
         }
@@ -59,6 +67,7 @@ impl TimeManager {
             limits,
             start_time: Instant::now(),
             soft_bound: Duration::from_millis(soft.saturating_sub(TIME_OVERHEAD_MS)),
+            firm_bound: Duration::from_millis(firm.saturating_sub(TIME_OVERHEAD_MS)),
             hard_bound: Duration::from_millis(hard.saturating_sub(TIME_OVERHEAD_MS)),
         }
     }
@@ -73,7 +82,7 @@ impl TimeManager {
             Limits::Depth(maximum) => td.completed_depth >= maximum,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
-            _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()),
+            _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()).min(self.firm_bound),
         }
     }
 
