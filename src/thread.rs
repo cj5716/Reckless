@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, AtomicUsize, Ordering},
+    atomic::{AtomicI64, AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{MAX_PLY, Move, Score, normalize_to_cp},
+    types::{MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
 };
 
 #[repr(align(64))]
@@ -101,6 +101,8 @@ pub struct SharedContext {
     pub nodes: Counter,
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
+    pub sum_scores: [AtomicI64; MAX_MOVES],
+    pub sum_completed_d1: [AtomicUsize; MAX_MOVES],
     pub history: *const SharedCorrectionHistory,
     pub replicator: NumaReplicator<SharedCorrectionHistory>,
 }
@@ -114,6 +116,8 @@ impl Default for SharedContext {
             status: Status::default(),
             nodes: Counter::default(),
             tb_hits: Counter::default(),
+            sum_scores: [const { AtomicI64::new(0) }; MAX_MOVES],
+            sum_completed_d1: [const { AtomicUsize::new(0) }; MAX_MOVES],
             soft_stop_votes: AtomicUsize::new(0),
             history: unsafe { replicator.get() },
             replicator,

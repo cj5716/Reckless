@@ -76,6 +76,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
+    let mut completed_d1 = vec![false; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -120,7 +121,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
-            td.optimism[td.board.side_to_move()] = 169 * average[td.pv_index] / (average[td.pv_index].abs() + 187);
+            let avg = if td.shared.sum_completed_d1[td.pv_index].load(Ordering::Acquire) == thread_count {
+                ((average[td.pv_index] as i64 * thread_count as i64
+                    + td.shared.sum_scores[td.pv_index].load(Ordering::Acquire))
+                    / (thread_count as i64 * 2)) as i32
+            } else {
+                average[td.pv_index]
+            };
+
+            td.optimism[td.board.side_to_move()] = 169 * avg / (avg.abs() + 187);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
@@ -150,11 +159,22 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         delta += 63 * delta / 128;
                     }
                     _ => {
+                        let old_avg = average[td.pv_index];
                         average[td.pv_index] = if average[td.pv_index] == Score::NONE {
                             score
                         } else {
                             (average[td.pv_index] + score) / 2
                         };
+
+                        if completed_d1[td.pv_index] {
+                            td.shared.sum_scores[td.pv_index]
+                                .fetch_add((average[td.pv_index] - old_avg) as i64, Ordering::AcqRel);
+                        } else {
+                            completed_d1[td.pv_index] = true;
+                            td.shared.sum_completed_d1[td.pv_index].fetch_add(1, Ordering::AcqRel);
+                            td.shared.sum_scores[td.pv_index].fetch_add(average[td.pv_index] as i64, Ordering::AcqRel);
+                        }
+
                         break;
                     }
                 }
