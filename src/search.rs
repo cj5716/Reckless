@@ -214,6 +214,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
+        let thread_delta = average[td.pv_index] - ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768);
+
         let multiplier = || {
             let nodes_factor = (2.7168 - 2.2669 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.5630_f32);
 
@@ -223,9 +225,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
+            let thread_trend = (1.0 + thread_delta as f32 / 400.0).clamp(0.85, 1.15);
+
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            nodes_factor * pv_stability * eval_stability * score_trend * thread_trend * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
