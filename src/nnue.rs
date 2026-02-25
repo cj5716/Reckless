@@ -48,14 +48,14 @@ mod simd {
     pub use scalar::*;
 }
 
-const NETWORK_SCALE: i32 = 380;
+const NETWORK_SCALE: i32 = 290;
 
 const INPUT_BUCKETS: usize = 10;
 const OUTPUT_BUCKETS: usize = 8;
 
 const L1_SIZE: usize = 768;
 const L2_SIZE: usize = 16;
-const L3_SIZE: usize = 32;
+const L3_SIZE: usize = 64;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
@@ -66,6 +66,11 @@ const FT_SHIFT: u32 = 9;
 const FT_SHIFT: i32 = 9;
 
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+
+const L1_INV_K: f32 = (1.0 / 6.0) as f32;
+const L1_OFFSET: f32 = 0.5_f32;
+const L2_INV_K: f32 = (1.0 / 6.0) as f32;
+const L2_OFFSET: f32 = 0.5_f32;
 
 #[rustfmt::skip]
 const INPUT_BUCKETS_LAYOUT: [usize; 64] = [
