@@ -123,7 +123,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
                 / 2;
-            td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
+            td.optimism[td.board.side_to_move()] = 180 * best_avg / (best_avg.abs() + 187);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
@@ -411,10 +411,10 @@ fn search<NODE: NodeType>(
         eval = td.stack[ply].eval;
     } else if let Some(entry) = &entry {
         raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
-        eval = correct_eval(td, raw_eval, correction_value);
+        eval = correct_eval(td, ply, raw_eval, correction_value);
     } else {
         raw_eval = td.nnue.evaluate(&td.board);
-        eval = correct_eval(td, raw_eval, correction_value);
+        eval = correct_eval(td, ply, raw_eval, correction_value);
 
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
     }
@@ -1170,7 +1170,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
         };
-        best_score = correct_eval(td, raw_eval, eval_correction(td, ply));
+        best_score = correct_eval(td, ply, raw_eval, eval_correction(td, ply));
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
