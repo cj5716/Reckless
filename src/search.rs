@@ -778,7 +778,7 @@ fn search<NODE: NodeType>(
             reduction -= 65 * move_count;
             reduction -= 3183 * correction_value.abs() / 1024;
             reduction += 1300 * alpha_raises;
-            reduction += ((threads_searching_move + 1).ilog2() * 3072 / (td.thread_count + 1).ilog2()) as i32;
+            reduction += ((2 * threads_searching_move + 1).ilog2() * 5120 / (td.thread_count + 1).ilog2()) as i32;
 
             if is_quiet {
                 reduction += 1972;
