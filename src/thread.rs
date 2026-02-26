@@ -12,7 +12,7 @@ use crate::{
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
+    types::{BREADCRUMBS, MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
 };
 
 #[repr(align(64))]
@@ -102,6 +102,7 @@ pub struct SharedContext {
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
+    pub breadcrumbs_at: [AtomicUsize; BREADCRUMBS],
     pub history: *const SharedCorrectionHistory,
     pub replicator: NumaReplicator<SharedCorrectionHistory>,
 }
@@ -117,6 +118,7 @@ impl Default for SharedContext {
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
+            breadcrumbs_at: [const { AtomicUsize::new(0) }; BREADCRUMBS],
             history: unsafe { replicator.get() },
             replicator,
         }
@@ -128,6 +130,7 @@ unsafe impl Sync for SharedContext {}
 
 pub struct ThreadData {
     pub id: usize,
+    pub thread_count: usize,
     pub shared: Arc<SharedContext>,
     pub board: Board,
     pub time_manager: TimeManager,
@@ -161,6 +164,7 @@ impl ThreadData {
     pub fn new(shared: Arc<SharedContext>) -> Self {
         Self {
             id: 0,
+            thread_count: 0,
             shared,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),

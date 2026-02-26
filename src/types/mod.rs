@@ -28,6 +28,9 @@ pub const MAX_PLY: usize = 128;
 /// Padding added because an optimization in MoveList::push_setwise writes 16 moves at a time to the move list (218 + 16 < 256).
 pub const MAX_MOVES: usize = 256;
 
+/// Breadcrumbs heuristic
+pub const BREADCRUMBS: usize = 8192;
+
 #[rustfmt::skip]
 pub enum Rank { R1, R2, R3, R4, R5, R6, R7, R8 }
 

@@ -6,7 +6,7 @@ use crate::{
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
-        ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
+        ArrayVec, BREADCRUMBS, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
         mate_in, mated_in,
     },
 };
@@ -74,6 +74,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     }
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
+    td.thread_count = thread_count;
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
@@ -759,6 +760,12 @@ fn search<NODE: NodeType>(
         let initial_nodes = td.nodes();
 
         make_move(td, ply, mv);
+        let threads_searching_move =
+            if NODE::ROOT {
+                td.shared.breadcrumbs_at[td.board.hash() as usize % BREADCRUMBS].fetch_add(1, Ordering::AcqRel)
+            } else {
+                0
+            };
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
 
@@ -771,6 +778,7 @@ fn search<NODE: NodeType>(
             reduction -= 65 * move_count;
             reduction -= 3183 * correction_value.abs() / 1024;
             reduction += 1300 * alpha_raises;
+            reduction += ((threads_searching_move + 1).ilog2() * 3072 / (td.thread_count + 1).ilog2()) as i32;
 
             if is_quiet {
                 reduction += 1972;
@@ -906,6 +914,9 @@ fn search<NODE: NodeType>(
             current_search_count += 1;
         }
 
+        if NODE::ROOT {
+            td.shared.breadcrumbs_at[td.board.hash() as usize % BREADCRUMBS].fetch_sub(1, Ordering::AcqRel);
+        }
         undo_move(td, mv);
 
         if td.stopped {
