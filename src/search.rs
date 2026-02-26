@@ -583,6 +583,8 @@ fn search<NODE: NodeType>(
         && !tt_move.is_quiet()
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
+        let mut move_count = 0;
+        let mut pc_best = -Score::INFINITE;
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -594,6 +596,7 @@ fn search<NODE: NodeType>(
             }
 
             make_move(td, ply, mv);
+            move_count += 1;
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
@@ -619,6 +622,8 @@ fn search<NODE: NodeType>(
                 return Score::ZERO;
             }
 
+            pc_best = pc_best.max(score);
+
             if score >= probcut_beta {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
@@ -626,6 +631,10 @@ fn search<NODE: NodeType>(
                     return score - (probcut_beta - beta);
                 }
             }
+        }
+
+        if move_count > 0 {
+            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, pc_best, Bound::Upper, Move::NULL, ply, tt_pv, false);
         }
     }
 
