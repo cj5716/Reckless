@@ -79,6 +79,7 @@ impl ThreadPool {
         shared.best_stats.iter().for_each(|x| {
             x.store((self.main_thread().previous_best_score + 32768) as u32, Ordering::Release);
         });
+        shared.optimal_move.store(0, Ordering::Release);
 
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();

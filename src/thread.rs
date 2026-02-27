@@ -102,6 +102,7 @@ pub struct SharedContext {
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
+    pub optimal_move: AtomicU32,
     pub history: *const SharedCorrectionHistory,
     pub replicator: NumaReplicator<SharedCorrectionHistory>,
 }
@@ -117,6 +118,7 @@ impl Default for SharedContext {
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
+            optimal_move: AtomicU32::new(0),
             history: unsafe { replicator.get() },
             replicator,
         }

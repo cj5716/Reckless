@@ -41,6 +41,14 @@ impl Move {
         Self(from as u16 | ((to as u16) << 6) | ((kind as u16) << 12))
     }
 
+    pub const fn new_from_raw(raw: u16) -> Self {
+        Self(raw)
+    }
+
+    pub const fn raw(self) -> u16 {
+        self.0
+    }
+
     pub const fn from(self) -> Square {
         Square::new((self.0 & 0b0000_0000_0011_1111) as u8)
     }

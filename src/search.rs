@@ -210,6 +210,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             last_best_rootmove = td.root_moves[0].clone();
         }
 
+        td.shared.optimal_move.fetch_max(
+            ((depth as u32) << 16) | last_best_rootmove.mv.raw() as u32,
+            Ordering::AcqRel,
+        );
+
         if td.stopped {
             break;
         }
@@ -225,7 +230,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            let best_move_agreement = if last_best_rootmove.mv != Move::new_from_raw((td.shared.optimal_move.load(Ordering::Acquire) & 0xffff) as u16) {
+                1.1
+            }
+            else {
+                1.0
+            };
+
+            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability * best_move_agreement
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
