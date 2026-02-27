@@ -482,6 +482,13 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
+    if !NODE::ROOT
+        && td.stack[ply - 1].reduction > 0
+        && tt_move.is_null()
+    {
+        depth = (depth - 1).max(1);
+    }
+
     let potential_singularity = depth >= 5 + tt_pv as i32
         && tt_depth >= depth - 3
         && tt_bound != Bound::Upper
@@ -780,10 +787,6 @@ fn search<NODE: NodeType>(
                 reduction -= 109 * history / 1024;
             }
 
-            if cut_node && tt_move.is_null() {
-                reduction += 1024;
-            }
-
             if NODE::PV {
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
@@ -858,10 +861,6 @@ fn search<NODE: NodeType>(
             } else {
                 reduction += 1098;
                 reduction -= 65 * history / 1024;
-            }
-
-            if cut_node && tt_move.is_null() {
-                reduction += 1024;
             }
 
             if tt_pv {
