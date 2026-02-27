@@ -82,9 +82,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
+    let mut increase_depth = true;
+    let mut depth = 1;
 
     // Iterative Deepening
-    for depth in 1..MAX_PLY as i32 {
+    while depth < MAX_PLY as i32 {
         best_move_changes /= 2;
 
         td.sel_depth = 0;
@@ -237,9 +239,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 if votes >= majority {
                     td.shared.status.set(Status::STOPPED);
                 }
+                else {
+                    increase_depth = votes < (thread_count * 35).div_ceil(100);
+                }
             }
         } else if soft_stop_voted {
             soft_stop_voted = false;
+            increase_depth = true;
             td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
         }
 
@@ -247,6 +253,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.stopped = true;
             break;
         }
+
+        depth += increase_depth as i32;
     }
 
     if report == Report::Minimal {
