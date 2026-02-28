@@ -1,7 +1,8 @@
 use crate::{
+    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
+    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -181,6 +182,29 @@ impl MovePicker {
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.threats();
         let side = td.board.side_to_move();
+        let occ = td.board.occupancies();
+
+        let pawn_threats = pawn_attacks_setwise(td.board.their(PieceType::Pawn), !side);
+
+        let mut minor_threats = Bitboard(0);
+        for square in td.board.their(PieceType::Knight) {
+            minor_threats |= knight_attacks(square);
+        }
+        for square in td.board.their(PieceType::Bishop) {
+            minor_threats |= bishop_attacks(square, occ);
+        }
+        minor_threats |= pawn_threats;
+
+        let mut rook_threats = Bitboard(0);
+        for square in td.board.their(PieceType::Rook) {
+            rook_threats |= rook_attacks(square, occ);
+        }
+        rook_threats |= minor_threats;
+
+        let threatened = (td.board.our(PieceType::Queen) & rook_threats)
+            | (td.board.our(PieceType::Rook) & minor_threats)
+            | (td.board.our(PieceType::Knight) & pawn_threats)
+            | (td.board.our(PieceType::Bishop) & pawn_threats);
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
@@ -195,6 +219,18 @@ impl MovePicker {
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv);
+
+            // bonus for escaping capture
+            if threatened.contains(mv.from()) {
+                let pt = td.board.piece_on(mv.from()).piece_type();
+                if pt == PieceType::Queen {
+                    entry.score += 20000;
+                } else if pt == PieceType::Rook {
+                    entry.score += 10000;
+                } else if pt != PieceType::Pawn {
+                    entry.score += 4000;
+                }
+            }
 
             // Bonus for checking moves
             if td.board.checking_squares(td.board.moved_piece(mv).piece_type()).contains(mv.to()) {
