@@ -9,8 +9,11 @@ const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
 const ENTRIES_PER_CLUSTER: usize = 3;
 
-const AGE_CYCLE: u8 = 1 << 5;
+const AGE_CYCLE: u8 = 1 << 4;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
+
+const TT_PV_CYCLE: u8 = 1 << 2;
+const TT_PV_MASK: u8 = TT_PV_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
 const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
@@ -22,7 +25,7 @@ pub struct Entry {
     pub raw_eval: i32,
     pub depth: i32,
     pub bound: Bound,
-    pub tt_pv: bool,
+    pub tt_pv: u8,
 }
 
 #[derive(Copy, Clone)]
@@ -31,10 +34,31 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub const fn new(bound: Bound, tt_pv: bool, age: u8) -> Self {
+    pub const fn new(bound: Bound, tt_pv: u8, age: u8) -> Self {
         debug_assert!(age <= AGE_MASK);
+        debug_assert!(tt_pv <= TT_PV_MASK);
 
-        Self { data: (bound as u8) | ((tt_pv as u8) << 2) | (age << 3) }
+        Self { data: (bound as u8) | (tt_pv << 2) | (age << 4) }
+    }
+
+    pub const fn cycle_tt_pv(self) -> Self {
+        let bound = self.bound();
+        let mut tt_pv = self.tt_pv();
+        let age = self.age();
+
+        if tt_pv != 0 {
+            tt_pv = (tt_pv + 1) & TT_PV_MASK;
+        }
+
+        Self::new(bound, tt_pv, age)
+    }
+
+    pub const fn set_tt_pv(self) -> Self {
+        let bound = self.bound();
+        let tt_pv = 1;
+        let age = self.age();
+
+        Self::new(bound, tt_pv, age)
     }
 
     pub const fn bound(self) -> Bound {
@@ -47,12 +71,12 @@ impl Flags {
         }
     }
 
-    pub const fn tt_pv(self) -> bool {
-        (self.data & (1 << 2)) != 0
+    pub const fn tt_pv(self) -> u8 {
+        (self.data >> 2) & TT_PV_MASK
     }
 
     pub const fn age(self) -> u8 {
-        self.data >> 3
+        self.data >> 4
     }
 }
 
@@ -142,16 +166,24 @@ impl TranspositionTable {
         self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize) -> Option<Entry> {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize, pv: bool) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
-            unsafe { &*self.ptr().add(index) }
+            unsafe { &mut *self.ptr().add(index) }
         };
 
         let key = verification_key(hash);
 
-        for entry in &cluster.entries {
+        for entry in &mut cluster.entries {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+
+                if pv {
+                    entry.flags = entry.flags.set_tt_pv();
+                }
+                else {
+                    entry.flags = entry.flags.cycle_tt_pv();
+                }
+
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
@@ -170,7 +202,7 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
+        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: u8,
         force: bool,
     ) {
         // Used for checking if an entry exists
@@ -208,7 +240,7 @@ impl TranspositionTable {
 
         if !force
             && key == entry.key
-            && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
+            && depth + 4 + 2 * (tt_pv != 0) as i32 <= entry.depth as i32
             && entry.flags.age() == tt_age
         {
             return;

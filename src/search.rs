@@ -320,13 +320,13 @@ fn search<NODE: NodeType>(
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply, NODE::PV);
 
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
-    let mut tt_pv = NODE::PV;
+    let mut tt_pv = if NODE::PV { 1 } else { 0 };
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -334,7 +334,7 @@ fn search<NODE: NodeType>(
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
+        tt_pv = entry.tt_pv;
 
         if !NODE::PV
             && !excluded
@@ -471,7 +471,7 @@ fn search<NODE: NodeType>(
     }
 
     if !NODE::ROOT
-        && !tt_pv
+        && tt_pv == 0
         && !in_check
         && !excluded
         && depth >= 2
@@ -482,7 +482,7 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity = depth >= 5 + tt_pv as i32
+    let potential_singularity = depth >= 5 + (tt_pv != 0) as i32
         && tt_depth >= depth - 3
         && tt_bound != Bound::Upper
         && is_valid(tt_score)
@@ -504,7 +504,7 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
-    if !tt_pv
+    if tt_pv == 0
         && !excluded
         && is_valid(estimated_score)
         && estimated_score >= beta
@@ -526,7 +526,7 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
-        && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
+        && eval >= beta - 9 * depth + 126 * (tt_pv != 0) as i32 - 128 * improvement / 1024 + 286
         && ply as i32 >= td.nmp_min_ply
         && td.stack[ply - 1].mv.is_some()
         && td.board.has_non_pawns()
@@ -635,7 +635,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
 
-        let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
+        let singular_beta = tt_score - depth - depth * (tt_pv != 0 && !NODE::PV) as i32;
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
@@ -784,7 +784,7 @@ fn search<NODE: NodeType>(
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
 
-            if tt_pv {
+            if tt_pv != 0 {
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
@@ -794,7 +794,7 @@ fn search<NODE: NodeType>(
                 reduction -= 910;
             }
 
-            if !tt_pv && cut_node {
+            if tt_pv == 0 && cut_node {
                 reduction += 1762;
                 reduction += 2116 * tt_move.is_null() as i32;
             }
@@ -856,12 +856,12 @@ fn search<NODE: NodeType>(
                 reduction -= 65 * history / 1024;
             }
 
-            if tt_pv {
+            if tt_pv != 0 {
                 reduction -= 897;
                 reduction -= 1127 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if !tt_pv && cut_node {
+            if tt_pv == 0 && cut_node {
                 reduction += 1450;
                 reduction += 2200 * tt_move.is_null() as i32;
             }
@@ -1058,7 +1058,12 @@ fn search<NODE: NodeType>(
         }
     }
 
-    tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
+    if tt_pv == 0 && !NODE::ROOT && bound == Bound::Upper && move_count > 2 {
+        tt_pv = td.stack[ply - 1].tt_pv;
+    }
+    else if !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv != 0 {
+        tt_pv = tt_pv.min(td.stack[ply - 1].tt_pv);
+    }
 
     if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
@@ -1120,17 +1125,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply, NODE::PV);
 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
-    let mut tt_pv = NODE::PV;
+    let mut tt_pv = if NODE::PV { 1 } else { 0 };
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
+        tt_pv = entry.tt_pv;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
