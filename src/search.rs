@@ -114,15 +114,20 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 }
             }
 
+            let best_stats = td.shared.best_stats[td.pv_index].load(Ordering::Acquire);
+            let best_avg = (best_stats & 0xffff) as i32 - 32768;
+            let best_depth = (best_stats >> 16) as i32;
+
+            let factor =
+                270 - (30 - (best_avg - average[td.pv_index]).abs().min(30)) * (best_depth - td.completed_depth).min(3);
+
             // Aspiration Windows
-            delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta += (average[td.pv_index] as i64 * average[td.pv_index] as i64 * factor as i64 / 6388200) as i32;
 
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
-            let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
-                + average[td.pv_index])
-                / 2;
+            let best_avg = (best_avg + average[td.pv_index]) / 2;
             td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
