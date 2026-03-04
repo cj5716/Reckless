@@ -37,6 +37,14 @@ impl Flags {
         Self { data: (bound as u8) | ((tt_pv as u8) << 2) | (age << 3) }
     }
 
+    pub const fn update_tt_pv(self, pv: bool) -> Self {
+        let bound = self.bound();
+        let tt_pv = self.tt_pv() | pv;
+        let age = self.age();
+
+        Self::new(bound, tt_pv, age)
+    }
+
     pub const fn bound(self) -> Bound {
         match self.data & 0b11 {
             0 => Bound::None,
@@ -142,16 +150,19 @@ impl TranspositionTable {
         self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize) -> Option<Entry> {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize, pv: bool) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
-            unsafe { &*self.ptr().add(index) }
+            unsafe { &mut *self.ptr().add(index) }
         };
 
         let key = verification_key(hash);
 
-        for entry in &cluster.entries {
+        for entry in &mut cluster.entries {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+
+                entry.flags = entry.flags.update_tt_pv(pv);
+
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),

@@ -320,7 +320,7 @@ fn search<NODE: NodeType>(
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply, NODE::PV);
 
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
@@ -334,7 +334,7 @@ fn search<NODE: NodeType>(
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
+        tt_pv = entry.tt_pv;
 
         if !NODE::PV
             && !excluded
@@ -1120,7 +1120,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply, NODE::PV);
 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1130,7 +1130,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
+        tt_pv = entry.tt_pv;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
