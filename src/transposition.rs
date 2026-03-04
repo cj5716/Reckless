@@ -145,13 +145,18 @@ impl TranspositionTable {
     pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
-            unsafe { &*self.ptr().add(index) }
+            unsafe { &mut *self.ptr().add(index) }
         };
 
         let key = verification_key(hash);
+        let tt_age = self.age();
 
-        for entry in &cluster.entries {
+        for entry in &mut cluster.entries {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+                if entry.flags.age() != tt_age {
+                    entry.flags = Flags::new(entry.flags.bound(), false, tt_age);
+                }
+
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
