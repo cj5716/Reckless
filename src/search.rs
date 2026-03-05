@@ -811,7 +811,7 @@ fn search<NODE: NodeType>(
                 reduction += 1604;
             }
 
-            if is_valid(tt_score) && tt_score < alpha {
+            if is_valid(tt_score) && tt_score <= alpha + 50 * (tt_bound == Bound::Lower) as i32 {
                 reduction += 600;
             }
 
