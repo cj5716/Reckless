@@ -790,7 +790,7 @@ fn search<NODE: NodeType>(
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if mv.is_noisy() && mv.to() == td.board.recapture_square() {
+            if !tt_pv && mv.is_noisy() && mv.to() == td.board.recapture_square() {
                 reduction -= 910;
             }
 
@@ -803,7 +803,7 @@ fn search<NODE: NodeType>(
                 reduction += (438 - 279 * improvement / 128).min(1288);
             }
 
-            if td.board.in_check() {
+            if !tt_pv && td.board.in_check() {
                 reduction -= 966;
             }
 
