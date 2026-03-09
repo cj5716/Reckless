@@ -76,6 +76,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
+    let mut average_lower = vec![if td.previous_best_score == Score::NONE { Score::NONE } else { td.previous_best_score - 13 }; td.multi_pv];
+    let mut average_upper = vec![if td.previous_best_score == Score::NONE { Score::NONE } else { td.previous_best_score + 13 }; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -117,8 +119,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             // Aspiration Windows
             delta += average[td.pv_index] * average[td.pv_index] / 23660;
 
-            let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
-            let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+            let bound_avg = (average[td.pv_index] * 4 + average_lower[td.pv_index] + average_upper[td.pv_index]) / 6;
+            let mut alpha = (bound_avg - delta).max(-Score::INFINITE);
+            let mut beta = (bound_avg + delta).min(Score::INFINITE);
 
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
@@ -145,12 +148,24 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         alpha = (score - delta).max(-Score::INFINITE);
                         reduction = 0;
                         delta += 27 * delta / 128;
+
+                        average_upper[td.pv_index] = if average_upper[td.pv_index] == Score::NONE {
+                            score
+                        } else {
+                            (average_upper[td.pv_index] + score) / 2
+                        };
                     }
                     s if s >= beta => {
                         alpha = (beta - delta).max(alpha);
                         beta = (score + delta).min(Score::INFINITE);
                         reduction += 1;
                         delta += 63 * delta / 128;
+
+                        average_lower[td.pv_index] = if average_lower[td.pv_index] == Score::NONE {
+                            score
+                        } else {
+                            (average_lower[td.pv_index] + score) / 2
+                        };
                     }
                     _ => {
                         average[td.pv_index] = if average[td.pv_index] == Score::NONE {
