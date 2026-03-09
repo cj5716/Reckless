@@ -133,7 +133,12 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 // Root Search
                 let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
+                let old = td.root_moves[td.pv_index].mv;
                 td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
+
+                if td.root_moves[td.pv_index].mv != old {
+                    average[td.pv_index] = Score::NONE;
+                }
 
                 if td.stopped {
                     break;
