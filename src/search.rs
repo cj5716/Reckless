@@ -623,6 +623,16 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
+                let bonus = (106 * depth).min(808);
+
+                td.noisy_history.update(
+                    td.board.all_threats(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    td.board.piece_on(mv.to()).piece_type(),
+                    bonus,
+                );
+
                 if !is_decisive(score) {
                     return (3 * score + beta) / 4;
                 }
