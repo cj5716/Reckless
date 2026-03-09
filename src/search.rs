@@ -4,7 +4,7 @@ use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
     thread::{RootMove, Status, ThreadData},
-    transposition::{Bound, TtDepth},
+    transposition::{Bound, Entry, TtDepth},
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
         mate_in, mated_in,
@@ -320,7 +320,18 @@ fn search<NODE: NodeType>(
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let entry = if NODE::ROOT && td.completed_depth > 0 {
+        Some(Entry {
+            depth: td.completed_depth,
+            score: td.root_moves[0].score,
+            raw_eval: td.nnue.evaluate(&td.board),
+            bound: Bound::Exact,
+            tt_pv: true,
+            mv: td.root_moves[0].mv,
+        })
+    } else {
+        td.shared.tt.read(hash, td.board.halfmove_clock(), ply)
+    };
 
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
