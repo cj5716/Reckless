@@ -585,7 +585,14 @@ fn search<NODE: NodeType>(
     if cut_node
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
-        && !tt_move.is_quiet()
+        && (tt_move.is_null()
+            || !tt_move.is_noisy()
+            || td.noisy_history.get(
+                td.board.all_threats(),
+                td.board.moved_piece(tt_move),
+                tt_move.to(),
+                if tt_move.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(tt_move.to()).piece_type() },
+            ) < -6969)
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
