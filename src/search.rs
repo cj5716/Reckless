@@ -503,7 +503,6 @@ fn search<NODE: NodeType>(
         && !in_check
         && estimated_score < alpha - 299 - 252 * depth * depth
         && alpha < 2048
-        && !tt_move.is_quiet()
     {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
@@ -1202,12 +1201,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch(if tt_bound != Bound::Upper && tt_move.is_noisy() { tt_move } else { Move::NULL });
+    let mut move_picker = MovePicker::new_qsearch(if tt_bound != Bound::Upper { tt_move } else { Move::NULL });
 
-    let skip_quiets =
-        |best_score| !((in_check && is_loss(best_score)) || (tt_move.is_quiet() && tt_bound != Bound::Upper));
-
-    while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets(best_score), ply) {
+    while let Some(mv) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
         if !td.board.is_legal(mv) {
             continue;
         }
