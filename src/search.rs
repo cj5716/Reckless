@@ -275,7 +275,7 @@ fn search<NODE: NodeType>(
 
     // Qsearch Dive
     if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta, ply);
+        return qsearch::<NODE>(td, alpha, beta, 0, ply);
     }
 
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
@@ -505,7 +505,7 @@ fn search<NODE: NodeType>(
         && alpha < 2048
         && !tt_move.is_quiet()
     {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+        return qsearch::<NonPV>(td, alpha, beta, 0, ply);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -602,7 +602,7 @@ fn search<NODE: NodeType>(
 
             make_move(td, ply, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
+            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, 0, ply + 1);
 
             let base_depth = (depth - 4).max(0);
             let mut probcut_depth = (base_depth - (score - probcut_beta) / 295).clamp(0, base_depth);
@@ -1094,7 +1094,9 @@ fn search<NODE: NodeType>(
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: isize) -> i32 {
+fn qsearch<NODE: NodeType>(
+    td: &mut ThreadData, mut alpha: i32, beta: i32, plies_since_entry: isize, ply: isize,
+) -> i32 {
     debug_assert!(!NODE::ROOT);
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
@@ -1228,7 +1230,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         make_move(td, ply, mv);
 
-        let score = -qsearch::<NODE>(td, -beta, -alpha, ply + 1);
+        let score = -qsearch::<NODE>(td, -beta, -alpha, plies_since_entry + 1, ply + 1);
 
         undo_move(td, mv);
 
@@ -1247,18 +1249,20 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 }
 
                 if score >= beta {
-                    let bonus = if best_move.is_noisy() { 106 } else { 172 };
+                    if plies_since_entry > 4 {
+                        let bonus = if best_move.is_noisy() { 106 } else { 172 };
 
-                    if best_move.is_noisy() {
-                        td.noisy_history.update(
-                            td.board.all_threats(),
-                            td.board.moved_piece(best_move),
-                            best_move.to(),
-                            td.board.piece_on(best_move.to()).piece_type(),
-                            bonus,
-                        );
-                    } else {
-                        td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, bonus);
+                        if best_move.is_noisy() {
+                            td.noisy_history.update(
+                                td.board.all_threats(),
+                                td.board.moved_piece(best_move),
+                                best_move.to(),
+                                td.board.piece_on(best_move.to()).piece_type(),
+                                bonus,
+                            );
+                        } else {
+                            td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, bonus);
+                        }
                     }
 
                     break;
