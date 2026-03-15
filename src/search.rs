@@ -1044,7 +1044,6 @@ fn search<NODE: NodeType>(
             factor += 113 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
             factor += 130 * (!in_check && best_score <= eval - 96) as i32;
             factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
-            factor += 69 * pcm_singular as i32;
 
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
 
@@ -1057,7 +1056,7 @@ fn search<NODE: NodeType>(
             }
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
-            let bonus = 60;
+            let bonus = 60 + 69 * pcm_singular as i32;
 
             td.noisy_history.update(
                 td.board.prior_threats(),
