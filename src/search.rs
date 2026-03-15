@@ -638,6 +638,7 @@ fn search<NODE: NodeType>(
 
     // Singular Extensions (SE)
     let mut extension = 0;
+    let mut singular = false;
 
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
@@ -654,6 +655,7 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
+            singular = true;
             let double_margin =
                 200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
@@ -766,6 +768,7 @@ fn search<NODE: NodeType>(
         let initial_nodes = td.nodes();
 
         make_move(td, ply, mv);
+        td.stack[ply].singular = mv == tt_move && singular;
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
 
@@ -1033,6 +1036,7 @@ fn search<NODE: NodeType>(
 
     if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
+        let pcm_singular = td.stack[ply - 1].singular;
         if pcm_move.is_quiet() {
             let mut factor = 95;
             factor += 156 * (depth > 5) as i32;
@@ -1040,6 +1044,7 @@ fn search<NODE: NodeType>(
             factor += 113 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
             factor += 130 * (!in_check && best_score <= eval - 96) as i32;
             factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
+            factor += 69 * pcm_singular as i32;
 
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
 
@@ -1354,6 +1359,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
     td.stack[ply].contcorrhist =
         td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
+    td.stack[ply].singular = false;
 
     td.shared.nodes.increment(td.id);
 
