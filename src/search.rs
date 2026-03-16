@@ -497,7 +497,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // ProbCut
-    if !NODE::PV && !in_check && !potential_singularity && !cut_node {
+    if !NODE::PV && !in_check && !potential_singularity {
         let probcut_alpha_1 = alpha - 109 - 152 * depth * depth;
 
         if estimated_score <= probcut_alpha_1
@@ -519,7 +519,7 @@ fn search<NODE: NodeType>(
 
             let probcut_depth_2 = depth - 4;
             if score <= probcut_alpha_2 && probcut_depth_2 > 0 {
-                score = search::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, probcut_depth_2, false, ply);
+                score = search::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, probcut_depth_2, cut_node, ply);
             }
 
             if score <= probcut_alpha_2 {
