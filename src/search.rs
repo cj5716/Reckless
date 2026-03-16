@@ -496,14 +496,36 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
-    // Razoring
-    if !NODE::PV
-        && !in_check
-        && estimated_score < alpha - 299 - 252 * depth * depth
-        && alpha < 2048
-        && !tt_move.is_quiet()
-    {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+    // ProbCut
+    if !NODE::PV && !in_check && !potential_singularity && !cut_node {
+        let probcut_alpha_1 = alpha - 209 - 202 * depth * depth;
+
+        if estimated_score <= probcut_alpha_1
+            && (!is_valid(tt_score) || tt_score <= probcut_alpha_1 && !is_decisive(tt_score))
+        {
+            let score = qsearch::<NonPV>(td, probcut_alpha_1, probcut_alpha_1 + 1, ply);
+
+            if score <= probcut_alpha_1 {
+                return score;
+            }
+        }
+
+        let probcut_alpha_2 = alpha - 50 - 300 * depth;
+
+        if estimated_score <= probcut_alpha_2
+            && (!is_valid(tt_score) || tt_score <= probcut_alpha_2 && !is_decisive(tt_score))
+        {
+            let mut score = qsearch::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, ply);
+
+            let probcut_depth_2 = depth - 4;
+            if score <= probcut_alpha_2 && probcut_depth_2 > 0 {
+                score = search::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, probcut_depth_2, false, ply);
+            }
+
+            if score <= probcut_alpha_2 {
+                return score;
+            }
+        }
     }
 
     // Reverse Futility Pruning (RFP)
