@@ -72,6 +72,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
+    let mut best_scores = [td.previous_best_score; MAX_PLY];
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
@@ -175,6 +176,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.completed_depth = depth;
         }
 
+        best_scores[td.completed_depth as usize] = td.root_moves[0].score;
+
         if report == Report::Full
             && !(is_loss(td.root_moves[0].display_score) && td.stopped)
             && (td.stopped || td.pv_index + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
@@ -218,9 +221,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
+            let score_drift = (1.0 + 0.01 * (best_scores[td.completed_depth as usize / 2] - td.root_moves[0].score) as f32).clamp(0.80, 1.20);
+
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            nodes_factor * pv_stability * eval_stability * score_trend * score_drift * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
