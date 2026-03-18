@@ -498,32 +498,20 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     if !NODE::PV && !in_check && !potential_singularity && !cut_node {
-        let probcut_alpha_1 = alpha - 159 - 202 * depth * depth;
 
-        if estimated_score <= probcut_alpha_1
-            && (!is_valid(tt_score) || tt_score <= probcut_alpha_1 && !is_decisive(tt_score))
+        let probcut_alpha = alpha - 300 - 25 * depth;
+
+        if estimated_score <= probcut_alpha
+            && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         {
-            let score = qsearch::<NonPV>(td, probcut_alpha_1, probcut_alpha_1 + 1, ply);
+            let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
-            if score <= probcut_alpha_1 {
-                return score;
-            }
-        }
-
-        let probcut_alpha_2 = alpha - 300 - 25 * depth;
-
-        if depth > 4
-            && estimated_score <= probcut_alpha_2
-            && (!is_valid(tt_score) || tt_score <= probcut_alpha_2 && !is_decisive(tt_score))
-        {
-            let mut score = qsearch::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, ply);
-
-            let probcut_depth_2 = depth - 4;
-            if score <= probcut_alpha_2 {
-                score = search::<NonPV>(td, probcut_alpha_2, probcut_alpha_2 + 1, probcut_depth_2, false, ply);
+            let probcut_depth = depth - 4;
+            if score <= probcut_alpha && probcut_depth > 0 {
+                score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
             }
 
-            if score <= probcut_alpha_2 {
+            if score <= probcut_alpha {
                 return score;
             }
         }
