@@ -1079,7 +1079,7 @@ fn search<NODE: NodeType>(
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= eval)
         || (bound == Bound::Lower && best_score <= eval)
-        || (!tt_pv && bound == tt_bound && td.nodes() % 8 == 0))
+        || (!tt_pv && bound == tt_bound))
     {
         update_correction_histories(td, depth, best_score - eval, ply);
     }
