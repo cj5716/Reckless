@@ -221,7 +221,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let score_drift = 0.8 + 0.02 * (best_scores[td.completed_depth as usize * 3 / 4] - td.root_moves[0].score).abs().min(30) as f32;
+            let score_drift = 0.7 + 0.015 * (best_scores[td.completed_depth as usize / 2] - td.root_moves[0].score).abs().min(40) as f32;
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
