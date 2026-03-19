@@ -497,7 +497,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // ProbCut
-    if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_move.is_null() {
+    if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_bound != Bound::Lower {
 
         let probcut_alpha = alpha - 600 - 25 * depth;
 
