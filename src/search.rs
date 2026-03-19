@@ -497,7 +497,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // ProbCut
-    if !NODE::PV && !in_check && !potential_singularity && !cut_node {
+    if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_move.is_null() {
 
         let probcut_alpha = alpha - 600 - 25 * depth;
 
@@ -506,7 +506,7 @@ fn search<NODE: NodeType>(
         {
             let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
-            let probcut_depth = depth - 5;
+            let probcut_depth = depth - 4;
             if score <= probcut_alpha && probcut_depth > 0 {
                 score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
             }
