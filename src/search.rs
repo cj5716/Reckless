@@ -504,6 +504,7 @@ fn search<NODE: NodeType>(
         if estimated_score <= probcut_alpha
             && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
         {
+            td.stack[ply].mv = Move::NULL;
             let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
             let probcut_depth = depth - 4;
@@ -513,6 +514,10 @@ fn search<NODE: NodeType>(
 
             if score <= probcut_alpha {
                 return score;
+            }
+
+            if tt_move.is_null() {
+                tt_move = td.stack[ply].mv;
             }
         }
     }
