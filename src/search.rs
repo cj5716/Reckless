@@ -498,7 +498,7 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_bound != Bound::Lower {
-        let probcut_alpha = alpha - (320 + 55 * depth.min(4));
+        let probcut_alpha = alpha - (333 + 69 * depth.min(4));
 
         let try_probcut = if is_valid(tt_score) {
             tt_score <= probcut_alpha && !is_decisive(tt_score)
