@@ -528,7 +528,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && !potential_singularity
         && estimated_score >= beta
-        && estimated_score >= eval
+        && !(tt_bound == Bound::Upper && is_valid(tt_score) && tt_score <= alpha)
         && eval
             >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
                 - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
