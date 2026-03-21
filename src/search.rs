@@ -498,12 +498,15 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_bound != Bound::Lower {
+        let probcut_alpha = alpha - (320 + 55 * depth.min(4));
 
-        let probcut_alpha = alpha - (420 + 55 * depth.min(4));
+        let try_probcut = if is_valid(tt_score) {
+            tt_score <= probcut_alpha && !is_decisive(tt_score)
+        } else {
+            estimated_score + 100 <= probcut_alpha
+        };
 
-        if estimated_score <= probcut_alpha
-            && (!is_valid(tt_score) || tt_score <= probcut_alpha && !is_decisive(tt_score))
-        {
+        if try_probcut {
             td.stack[ply].mv = Move::NULL;
             let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
 
