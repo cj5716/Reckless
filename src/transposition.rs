@@ -193,7 +193,8 @@ impl TranspositionTable {
                 break;
             }
 
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age)
+                + 5 * (candidate.flags.bound() == Bound::Exact) as i32;
             if quality < lowest_quality {
                 replacement_slot = Some(candidate);
                 lowest_quality = quality;
