@@ -496,14 +496,29 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
-    // Razoring
-    if !NODE::PV
-        && !in_check
-        && estimated_score < alpha - 299 - 252 * depth * depth
-        && alpha < 2048
-        && !tt_move.is_quiet()
-    {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+    // ProbCut
+    if !NODE::PV && !in_check && !potential_singularity && !cut_node && tt_bound != Bound::Lower {
+
+        let probcut_alpha = alpha - (600 + 25 * depth).min(700);
+
+        let try_probcut = if is_valid(tt_score) {
+            tt_score <= probcut_alpha && !is_decisive(tt_score)
+        } else {
+            estimated_score + 100 <= probcut_alpha
+        };
+
+        if try_probcut {
+            let mut score = qsearch::<NonPV>(td, probcut_alpha, probcut_alpha + 1, ply);
+
+            let probcut_depth = depth - 4;
+            if score <= probcut_alpha && probcut_depth > 0 {
+                score = search::<NonPV>(td, probcut_alpha, probcut_alpha + 1, probcut_depth, false, ply);
+            }
+
+            if score <= probcut_alpha {
+                return score;
+            }
+        }
     }
 
     // Reverse Futility Pruning (RFP)
