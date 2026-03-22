@@ -165,12 +165,33 @@ impl Network {
     }
 
     fn update_threat_accumulator(&mut self, accurate: usize, board: &Board, pov: Color) {
-        let king = board.king_square(pov);
 
-        for i in accurate..self.index {
-            if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
-                unsafe { current.update(&prev[i], king, pov) };
+        if accurate == self.index {
+            return;
+        }
+
+        let king = board.king_square(pov);
+        let mut dummy: [i16; L1_SIZE];
+
+        if accurate + 1 == self.index {
+            let prev = self.threat_stack[accurate].values[pov];
+            let curr = self.threat_stack[accurate + 1];
+
+            unsafe { curr.update<false>(&prev, &mut dummy, king, pov) };
+        }
+        else {
+            let prev = self.threat_stack[accurate].values[pov];
+            let next = self.threat_stack[accurate + 1];
+
+            unsafe { next.update<true>(&prev, &mut dummy, king, pov) };
+
+            for i in accurate + 1..self.index {
+                let curr = self.threat_stack[i];
+                unsafe { curr.update<true>(&dummy, &mut dummy, king, pov) };
             }
+
+            let last = self.threat_stack[self.index];
+            unsafe { curr.update<false>(&dummy, &mut dummy, king, pov) };
         }
     }
 

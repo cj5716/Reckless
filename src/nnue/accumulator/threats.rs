@@ -137,7 +137,7 @@ impl ThreatAccumulator {
         self.accurate[pov] = true;
     }
 
-    pub unsafe fn update(&mut self, prev: &Self, king: Square, pov: Color) {
+    pub unsafe fn update<store_dummy: bool>(&mut self, prev: &[i16; L1_SIZE], dummy: &mut [i16; L1_SIZE], king: Square, pov: Color) {
         let mut adds = ArrayVec::<usize, 256>::new();
         let mut subs = ArrayVec::<usize, 256>::new();
 
@@ -161,7 +161,8 @@ impl ThreatAccumulator {
         let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
         for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
-            let input = prev.values[pov].as_ptr().add(offset);
+            let input = prev.as_ptr().add(offset);
+            let inter = dummy.as_ptr().add(offset);
             let output = self.values[pov].as_mut_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
@@ -212,6 +213,12 @@ impl ThreatAccumulator {
 
             for (i, register) in registers.iter().enumerate() {
                 *output.add(i * simd::I16_LANES).cast() = *register;
+            }
+
+            if store_dummy {
+                for (i, register) in registers.iter().enumerate() {
+                    *inter.add(i * simd::I16_LANES).cast() = *register;
+                }
             }
         }
 
