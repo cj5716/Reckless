@@ -123,8 +123,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
                 / 2;
-            td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
+            td.optimism[td.board.side_to_move()] = calc_optimism(best_avg);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+            td.stack[0].rolling_val = best_avg;
 
             loop {
                 td.stack = Stack::default();
@@ -399,6 +400,15 @@ fn search<NODE: NodeType>(
                 max_score = score;
             }
         }
+    }
+
+    if !NODE::ROOT {
+        td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
+        if tt_bound == Bound::Exact && is_valid(tt_score) {
+            td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+        }
+        td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
+        td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
     }
 
     let correction_value = eval_correction(td, ply);
@@ -1156,6 +1166,15 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
+    if !NODE::ROOT {
+        td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
+        if tt_bound == Bound::Exact && is_valid(tt_score) {
+            td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+        }
+        td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
+        td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+    }
+
     let raw_eval;
     let eval;
     let mut best_score;
@@ -1344,6 +1363,10 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
             td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }
+}
+
+fn calc_optimism(val: i32) -> i32 {
+    169 * val / (val.abs() + 187)
 }
 
 fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
