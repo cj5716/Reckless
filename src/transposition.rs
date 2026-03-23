@@ -22,6 +22,7 @@ pub struct Entry {
     pub raw_eval: i32,
     pub depth: i32,
     pub bound: Bound,
+    pub relative_age: i32,
     pub tt_pv: bool,
 }
 
@@ -157,6 +158,7 @@ impl TranspositionTable {
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
                     raw_eval: entry.raw_eval as i32,
                     bound: entry.flags.bound(),
+                    relative_age: entry.relative_age(self.age()),
                     tt_pv: entry.flags.tt_pv(),
                     mv: entry.mv,
                 };
