@@ -407,7 +407,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT {
         td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
         if tt_bound == Bound::Exact && tt_entry_age == 0 && is_valid(tt_score) {
-            td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+            td.stack[ply].rolling_val = (td.stack[ply].rolling_val + tt_score) / 2;
             td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
@@ -1173,7 +1173,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     if !NODE::ROOT {
         td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
         if tt_bound == Bound::Exact && tt_entry_age == 0 && is_valid(tt_score) {
-            td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+            td.stack[ply].rolling_val = (td.stack[ply].rolling_val + tt_score) / 2;
             td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
