@@ -1246,7 +1246,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 }
 
                 if score >= beta {
-                    let bonus = if best_move.is_noisy() { 106 } else { 172 };
+                    let bonus = if best_move.is_noisy() { 52 } else { 99 };
 
                     if best_move.is_noisy() {
                         td.noisy_history.update(
