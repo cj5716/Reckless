@@ -404,7 +404,7 @@ fn search<NODE: NodeType>(
 
     if !NODE::ROOT {
         td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
-        if tt_bound == Bound::Exact && tt_depth >= depth - 3 && is_valid(tt_score) {
+        if tt_bound == Bound::Exact && tt_depth >= td.root_depth - ply as i32 - 2 && is_valid(tt_score) {
             td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
         }
         td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
@@ -1142,6 +1142,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
+    let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1149,6 +1150,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
+        tt_depth = entry.depth;
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
@@ -1164,6 +1166,15 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         {
             return tt_score;
         }
+    }
+
+    if !NODE::ROOT {
+        td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
+        if tt_bound == Bound::Exact && tt_depth >= td.root_depth - ply as i32 - 2 && is_valid(tt_score) {
+            td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+        }
+        td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
+        td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
     }
 
     let raw_eval;
