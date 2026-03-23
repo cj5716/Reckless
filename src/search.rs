@@ -408,9 +408,9 @@ fn search<NODE: NodeType>(
         td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
         if tt_bound == Bound::Exact && tt_entry_age == 0 && is_valid(tt_score) {
             td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+            td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
+            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
-        td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
-        td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
     }
 
     let correction_value = eval_correction(td, ply);
@@ -1174,9 +1174,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         td.stack[ply].rolling_val = -td.stack[ply - 1].rolling_val;
         if tt_bound == Bound::Exact && tt_entry_age == 0 && is_valid(tt_score) {
             td.stack[ply].rolling_val = (td.stack[ply].rolling_val * 3 + tt_score) / 4;
+            td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
+            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
-        td.optimism[td.board.side_to_move()] = calc_optimism(td.stack[ply].rolling_val);
-        td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
     }
 
     let raw_eval;
