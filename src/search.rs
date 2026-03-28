@@ -460,6 +460,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply + 1].killer = Move::NULL;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet move ordering using eval difference
@@ -661,10 +662,16 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin =
-                200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-            let triple_margin =
-                288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128 + 32;
+            let double_margin = 200 * NODE::PV as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 16 * (tt_move == td.stack[ply].serial_killer) as i32
+                - 16 * correction_value.abs() / 128;
+
+            let triple_margin = 288 * NODE::PV as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 16 * (tt_move == td.stack[ply].serial_killer) as i32
+                - 16 * correction_value.abs() / 128
+                + 32;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
@@ -964,6 +971,12 @@ fn search<NODE: NodeType>(
                 if score >= beta {
                     bound = Bound::Lower;
                     td.stack[ply].cutoff_count += 1;
+
+                    td.stack[ply].serial_killer = if mv == td.stack[ply].killer { mv } else { Move::NULL };
+                    if is_quiet {
+                        td.stack[ply].killer = mv;
+                    }
+
                     break;
                 }
 
