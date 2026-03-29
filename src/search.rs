@@ -684,7 +684,7 @@ fn search<NODE: NodeType>(
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
-    } else if NODE::PV && tt_move.is_quiet() && tt_move == td.stack[ply].serial_killer {
+    } else if tt_move.is_quiet() && tt_move == td.stack[ply].serial_killer {
         extension = 1;
     }
 
