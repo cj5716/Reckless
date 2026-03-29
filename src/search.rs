@@ -684,8 +684,6 @@ fn search<NODE: NodeType>(
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
-    } else if tt_move.is_quiet() && tt_move == td.stack[ply].serial_killer {
-        extension = 1;
     }
 
     let mut best_move = Move::NULL;
@@ -812,6 +810,10 @@ fn search<NODE: NodeType>(
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
                 reduction -= 910;
+            }
+
+            if mv == td.stack[ply].serial_killer {
+                reduction -= 1024;
             }
 
             if !tt_pv && cut_node {
