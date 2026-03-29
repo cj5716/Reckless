@@ -461,6 +461,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
     td.stack[ply + 1].killer = Move::NULL;
+    td.stack[ply + 1].serial_killer = Move::NULL;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet move ordering using eval difference
@@ -972,8 +973,8 @@ fn search<NODE: NodeType>(
                     bound = Bound::Lower;
                     td.stack[ply].cutoff_count += 1;
 
-                    td.stack[ply].serial_killer = if mv == td.stack[ply].killer { mv } else { Move::NULL };
                     if is_quiet {
+                        td.stack[ply].serial_killer = if mv == td.stack[ply].killer { mv } else { Move::NULL };
                         td.stack[ply].killer = mv;
                     }
 
