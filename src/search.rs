@@ -663,16 +663,10 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin = 200 * NODE::PV as i32
-                - 16 * tt_move.is_quiet() as i32
-                - 16 * (tt_move == td.stack[ply].serial_killer) as i32
-                - 16 * correction_value.abs() / 128;
-
-            let triple_margin = 288 * NODE::PV as i32
-                - 16 * tt_move.is_quiet() as i32
-                - 16 * (tt_move == td.stack[ply].serial_killer) as i32
-                - 16 * correction_value.abs() / 128
-                + 32;
+            let double_margin =
+                200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+            let triple_margin =
+                288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128 + 32;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
@@ -689,6 +683,8 @@ fn search<NODE: NodeType>(
             extension = -2;
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
+        extension = 1;
+    } else if NODE::PV && tt_move.is_quiet() && tt_move == td.stack[ply].serial_killer {
         extension = 1;
     }
 
