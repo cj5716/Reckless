@@ -270,6 +270,7 @@ fn search<NODE: NodeType>(
 
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_present();
+    let hash = td.board.hash();
 
     if !NODE::ROOT && NODE::PV {
         td.pv_table.clear(ply as usize);
@@ -286,6 +287,7 @@ fn search<NODE: NodeType>(
 
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = draw(td);
+        td.shared.tt.write(hash, TtDepth::SOME, Score::NONE, alpha, Bound::Lower, Move::NULL, ply, NODE::PV, false);
         if alpha >= beta {
             return alpha;
         }
@@ -325,7 +327,6 @@ fn search<NODE: NodeType>(
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
-    let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
     let mut tt_depth = 0;
@@ -1100,8 +1101,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
+    let hash = td.board.hash();
+
     if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = draw(td);
+        td.shared.tt.write(hash, TtDepth::SOME, Score::NONE, alpha, Bound::Lower, Move::NULL, ply, NODE::PV, false);
         if alpha >= beta {
             return alpha;
         }
@@ -1127,7 +1131,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return if in_check { draw(td) } else { td.nnue.evaluate(&td.board) };
     }
 
-    let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
     let mut tt_move = Move::NULL;
