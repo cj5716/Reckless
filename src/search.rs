@@ -666,7 +666,7 @@ fn search<NODE: NodeType>(
             let triple_margin =
                 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128 + 32;
 
-            extension = 1;
+            depth += 1;
             extension += (score < singular_beta - double_margin) as i32;
             extension += (score < singular_beta - triple_margin) as i32;
         }
@@ -773,7 +773,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
 
         let mut score = Score::ZERO;
 
