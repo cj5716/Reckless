@@ -323,7 +323,7 @@ impl Board {
                     return true;
                 }
 
-                if self.state.repetition != 0 {
+                if self.state_stack[self.state_stack.len() - d].repetition != 0 {
                     return true;
                 }
             }
