@@ -8,7 +8,7 @@ impl Board {
 
         self.state.key ^= ZOBRIST.side ^ ZOBRIST.castling[self.state.castling];
         self.state.plies_from_null = 0;
-        self.state.repetition = 0;
+        self.state.repetition = false;
         self.state.captured = None;
         self.state.recapture_square = Square::None;
 
@@ -134,25 +134,19 @@ impl Board {
         self.update_king_threats();
         self.update_en_passant();
 
-        self.state.repetition = 0;
+        self.state.repetition = false;
 
         let end = self.state.plies_from_null.min(self.halfmove_clock() as usize);
 
         if end >= 4 {
-            let mut idx = self.state_stack.len() as isize - 4;
             for i in (4..=end).step_by(2) {
-                if idx < 0 {
-                    break;
-                }
 
-                let stp = &self.state_stack[idx as usize];
+                let stp = &self.state_stack[self.state_stack.len() - i];
 
                 if stp.key == self.state.key {
-                    self.state.repetition = if stp.repetition != 0 { -(i as i32) } else { i as i32 };
+                    self.state.repetition = true;
                     break;
                 }
-
-                idx -= 2;
             }
         }
     }

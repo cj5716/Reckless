@@ -29,7 +29,7 @@ struct InternalState {
     halfmove_clock: u8,
     material: i32,
     plies_from_null: usize,
-    repetition: i32,
+    repetition: bool,
     captured: Option<Piece>,
     recapture_square: Square,
     piece_threats: [Bitboard; PieceType::NUM],
@@ -258,23 +258,19 @@ impl Board {
         (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).popcount() != 1
     }
 
-    /// Checks if the position has repeated once earlier but strictly
-    /// after the root, or repeated twice before or at the root.
-    pub const fn draw_by_repetition(&self, ply: i32) -> bool {
-        self.state.repetition != 0 && self.state.repetition < ply
-    }
-
     pub fn draw_by_fifty_move_rule(&self) -> bool {
         self.halfmove_clock() >= 100 && (!self.in_check() || self.has_legal_moves())
     }
 
-    /// Checks if the position is a known draw by material, fifty-move or repetition.
-    pub fn is_draw(&self, ply: isize) -> bool {
-        self.draw_by_material() || self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
+    /// Checks if the position is a known draw by material or fifty-move rule.
+    pub fn is_draw(&self) -> bool {
+        self.draw_by_material() || self.draw_by_fifty_move_rule()
     }
 
     /// Checks if the current position has a move that leads to a draw by repetition.
     ///
+    /// We define a repetition as a position that has repeated once earlier but strictly
+    /// after the root, or repeated twice before or at the root.
     /// This method uses a cuckoo hashing algorithm as described in M. N. J. van Kervinck's
     /// paper to detect cycles one ply before they appear in the search of a game tree.
     ///
@@ -312,7 +308,7 @@ impl Board {
             }
 
             if (between(cuckoo_a(cuckoo_index), cuckoo_b(cuckoo_index)) & self.occupancies()).is_empty()
-                && (ply > compared_ply || stack[index].repetition != 0)
+                && (ply > compared_ply || stack[index].repetition)
             {
                 return true;
             }

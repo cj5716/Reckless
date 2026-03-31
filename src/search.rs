@@ -303,7 +303,7 @@ fn search<NODE: NodeType>(
     }
 
     if !NODE::ROOT {
-        if td.board.is_draw(ply) {
+        if td.board.is_draw() {
             return Score::ZERO;
         }
 
@@ -1121,7 +1121,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return Score::ZERO;
     }
 
-    if td.board.is_draw(ply) {
+    if td.board.is_draw() {
         return Score::ZERO;
     }
 
