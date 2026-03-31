@@ -1,5 +1,5 @@
 use super::{MAX_PLY, PieceType};
-use crate::{board::Board, thread::ThreadData};
+use crate::board::Board;
 
 pub struct Score;
 
@@ -15,10 +15,6 @@ impl Score {
 
     pub const TB_WIN:        i32 = Self::MATE_IN_MAX - 1;
     pub const TB_WIN_IN_MAX: i32 = Self::TB_WIN - MAX_PLY as i32;
-}
-
-pub fn draw(td: &ThreadData) -> i32 {
-    (td.nodes() % 5) as i32 - 2
 }
 
 pub const fn mated_in(ply: isize) -> i32 {

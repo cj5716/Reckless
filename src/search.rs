@@ -8,7 +8,7 @@ use crate::{
     time::Limits,
     transposition::{Bound, TtDepth},
     types::{
-        ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
+        ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, is_decisive, is_loss, is_valid, is_win,
         mate_in, mated_in,
     },
 };
@@ -286,9 +286,8 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    let draw_score = draw(td);
-    if !NODE::ROOT && alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw_score;
+    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
+        alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
         }
@@ -305,11 +304,11 @@ fn search<NODE: NodeType>(
 
     if !NODE::ROOT {
         if td.board.is_draw(ply) {
-            return draw(td);
+            return Score::ZERO;
         }
 
         if ply as usize >= MAX_PLY - 1 {
-            return if in_check { draw(td) } else { td.nnue.evaluate(&td.board) };
+            return if in_check { Score::ZERO } else { td.nnue.evaluate(&td.board) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -986,7 +985,7 @@ fn search<NODE: NodeType>(
             return -Score::TB_WIN_IN_MAX + 1;
         }
 
-        return if in_check { mated_in(ply) } else { draw(td) };
+        return if in_check { mated_in(ply) } else { Score::ZERO };
     }
 
     if best_move.is_present() {
@@ -1102,9 +1101,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
     debug_assert!(NODE::PV || alpha == beta - 1);
 
-    let draw_score = draw(td);
-    if alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw_score;
+    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
+        alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
         }
@@ -1124,11 +1122,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     if td.board.is_draw(ply) {
-        return draw(td);
+        return Score::ZERO;
     }
 
     if ply as usize >= MAX_PLY - 1 {
-        return if in_check { draw(td) } else { td.nnue.evaluate(&td.board) };
+        return if in_check { Score::ZERO } else { td.nnue.evaluate(&td.board) };
     }
 
     let hash = td.board.hash();
