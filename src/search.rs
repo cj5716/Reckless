@@ -679,7 +679,7 @@ fn search<NODE: NodeType>(
         // Negative Extensions
         else if tt_score >= beta {
             extension = -2;
-        } else if cut_node {
+        } else if cut_node && score >= tt_score {
             extension = -2;
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
