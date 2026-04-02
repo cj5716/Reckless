@@ -13,7 +13,7 @@ const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 64);
-//const _: () = assert!(std::mem::size_of::<InternalEntry>() == 11);
+const _: () = assert!(std::mem::size_of::<InternalEntry>() == 11);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -67,7 +67,7 @@ pub enum Bound {
 
 /// Internal representation of a transposition table entry (11 bytes).
 #[derive(Clone)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct InternalEntry {
     key: u16,         // 2 bytes
     mv: Move,         // 2 bytes
