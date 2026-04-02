@@ -140,7 +140,6 @@ impl Board {
 
         if end >= 4 {
             for i in (4..=end).step_by(2) {
-
                 let stp = &self.state_stack[self.state_stack.len() - i];
 
                 if stp.key == self.state.key {
