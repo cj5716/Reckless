@@ -224,7 +224,7 @@ impl TranspositionTable {
         let entry_completed_depth = entry.completed_depth as i32;
         if !force
             && key == entry.key
-            && depth + (completed_depth - entry_completed_depth).min(2) * 2 + 2 * tt_pv as i32 <= entry.depth()
+            && depth + (completed_depth - entry_completed_depth).min(3) * 3 + 2 * tt_pv as i32 <= entry.depth()
             && entry.flags.age() == tt_age
         {
             return;
