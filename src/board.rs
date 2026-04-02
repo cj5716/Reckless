@@ -201,6 +201,23 @@ impl Board {
         self.fullmove_number += self.side_to_move() as usize;
     }
 
+    pub fn calc_repetition(&mut self) {
+        self.state.repetition = false;
+
+        let end = self.state.plies_from_null.min(self.halfmove_clock() as usize);
+
+        if end >= 4 {
+            for i in (4..=end).step_by(2) {
+                let stp = &self.state_stack[self.state_stack.len() - i];
+
+                if stp.key == self.state.key {
+                    self.state.repetition = true;
+                    break;
+                }
+            }
+        }
+    }
+
     pub fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
     }

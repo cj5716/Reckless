@@ -135,19 +135,6 @@ impl Board {
         self.update_en_passant();
 
         self.state.repetition = false;
-
-        let end = self.state.plies_from_null.min(self.halfmove_clock() as usize);
-
-        if end >= 4 {
-            for i in (4..=end).step_by(2) {
-                let stp = &self.state_stack[self.state_stack.len() - i];
-
-                if stp.key == self.state.key {
-                    self.state.repetition = true;
-                    break;
-                }
-            }
-        }
     }
 
     pub fn undo_move(&mut self, mv: Move) {
