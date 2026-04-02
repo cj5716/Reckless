@@ -69,13 +69,13 @@ pub enum Bound {
 #[derive(Clone)]
 #[repr(C, packed)]
 pub struct InternalEntry {
-    key: u16,         // 2 bytes
-    mv: Move,         // 2 bytes
-    score: i16,       // 2 bytes
-    raw_eval: i16,    // 2 bytes
-    offset_depth: u8, // 1 byte
-    dummy: u8,        // 1 byte
-    flags: Flags,     // 1 byte
+    key: u16,            // 2 bytes
+    mv: Move,            // 2 bytes
+    score: i16,          // 2 bytes
+    raw_eval: i16,       // 2 bytes
+    offset_depth: u8,    // 1 byte
+    completed_depth: u8, // 1 byte
+    flags: Flags,        // 1 byte
 }
 
 impl InternalEntry {
@@ -186,7 +186,7 @@ impl TranspositionTable {
     #[allow(clippy::too_many_arguments)]
     pub fn write(
         &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
-        force: bool,
+        completed_depth: i32, force: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
@@ -221,7 +221,12 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !force && key == entry.key && depth + 4 + 2 * tt_pv as i32 <= entry.depth() && entry.flags.age() == tt_age {
+        let entry_completed_depth = entry.completed_depth as i32;
+        if !force
+            && key == entry.key
+            && depth + (completed_depth - entry_completed_depth).min(4) + 2 * tt_pv as i32 <= entry.depth()
+            && entry.flags.age() == tt_age
+        {
             return;
         }
 
@@ -235,6 +240,7 @@ impl TranspositionTable {
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
+        entry.completed_depth = completed_depth as u8;
     }
 
     pub fn prefetch(&self, hash: u64) {
