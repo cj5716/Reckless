@@ -7,13 +7,13 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
-const ENTRIES_PER_CLUSTER: usize = 3;
+const ENTRIES_PER_CLUSTER: usize = 5;
 
 const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
-const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
-const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
+const _: () = assert!(std::mem::size_of::<Cluster>() == 64);
+//const _: () = assert!(std::mem::size_of::<InternalEntry>() == 11);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -65,7 +65,7 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (10 bytes).
+/// Internal representation of a transposition table entry (11 bytes).
 #[derive(Clone)]
 #[repr(C)]
 pub struct InternalEntry {
@@ -74,6 +74,7 @@ pub struct InternalEntry {
     score: i16,       // 2 bytes
     raw_eval: i16,    // 2 bytes
     offset_depth: u8, // 1 byte
+    dummy: u8,        // 1 byte
     flags: Flags,     // 1 byte
 }
 
@@ -105,7 +106,7 @@ impl InternalEntry {
 }
 
 #[derive(Clone)]
-#[repr(align(32))]
+#[repr(align(64))]
 struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
 }
