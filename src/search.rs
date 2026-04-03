@@ -1221,6 +1221,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
+            if move_picker.stage() == Stage::BadNoisy
+                && td.board.piece_on(mv.to()).value() < PieceType::Knight.value()
+                && eval + 100 <= alpha
+            {
+                continue;
+            }
+
             // Static Exchange Evaluation Pruning (SEE Pruning)
             if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - 100) {
                 continue;
