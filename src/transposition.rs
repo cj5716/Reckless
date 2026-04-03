@@ -1,3 +1,4 @@
+use crate::misc::dbg_stats;
 use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
 
 use crate::types::{Move, Score, is_decisive, is_loss, is_valid, is_win};
@@ -222,10 +223,17 @@ impl TranspositionTable {
         }
 
         let entry_completed_depth = entry.completed_depth as i32;
+
+        let offset = [3, 5, 7, 8];
+
+        if !force && key == entry.key && entry.flags.age() == tt_age {
+            dbg_stats(offset[(completed_depth - entry_completed_depth).clamp(0, 3) as usize], 0);
+        }
+
         if !force
             && key == entry.key
-            && depth + (completed_depth - entry_completed_depth).min(3) * 3 + 2 * tt_pv as i32 <= entry.depth()
             && entry.flags.age() == tt_age
+            && depth + offset[(completed_depth - entry_completed_depth).clamp(0, 3) as usize] + 2 * tt_pv as i32 <= entry.depth()
         {
             return;
         }
