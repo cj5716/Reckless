@@ -1223,7 +1223,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
             if move_picker.stage() == Stage::BadNoisy
                 && td.board.piece_on(mv.to()).value() < PieceType::Knight.value()
-                && eval + 100 <= alpha
             {
                 continue;
             }
