@@ -525,9 +525,9 @@ fn search<NODE: NodeType>(
         && estimated_score
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
-                - td.stack[ply - 1].reduction / 64
+                - (td.stack[ply - 1].reduction / 128).clamp(0, 64)
                 - 64 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
-                + 32
+                + 64
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
