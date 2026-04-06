@@ -1087,7 +1087,7 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= eval)
         || (bound == Bound::Lower && best_score <= eval))
     {
-        update_correction_histories(td, depth, best_score - eval, ply);
+        update_correction_histories(td, depth, best_score - eval, ply, entry.is_some());
     }
 
     debug_assert!(alpha < beta);
@@ -1309,10 +1309,10 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         / 77
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize, tt_hit: bool) {
     let stm = td.board.side_to_move();
     let corrhist = td.corrhist();
-    let bonus = (142 * depth * diff / 128).clamp(-4923, 3072);
+    let bonus = (142 * depth * diff * if tt_hit { 2 } else { 1 } / 256).clamp(-4923, 3072);
 
     corrhist.pawn.update(stm, td.board.pawn_key(), bonus);
     corrhist.minor.update(stm, td.board.minor_key(), bonus);
