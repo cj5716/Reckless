@@ -509,6 +509,7 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV
+        && td.stack[ply - 1].reduction == 0
         && !in_check
         && estimated_score < alpha - 299 - 252 * depth * depth
         && alpha < 2048
