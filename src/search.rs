@@ -336,6 +336,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut tt_was_pv = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -343,6 +344,7 @@ fn search<NODE: NodeType>(
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_was_pv = entry.tt_pv;
         tt_pv |= entry.tt_pv;
 
         if !NODE::PV
@@ -967,7 +969,7 @@ fn search<NODE: NodeType>(
                 alpha = score;
 
                 if !(NODE::ROOT && td.pv_index > 0) && mv != tt_move {
-                    td.shared.tt.write(hash, depth, raw_eval, score, Bound::Lower, mv, ply, true, false);
+                    td.shared.tt.write(hash, depth, raw_eval, score, Bound::Lower, mv, ply, tt_was_pv, false);
                 }
 
                 if !is_decisive(score) {
