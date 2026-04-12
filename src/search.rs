@@ -677,11 +677,11 @@ fn search<NODE: NodeType>(
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
             return (2 * score + beta) / 3;
+        } else if score > tt_score && td.stack[ply].mv != Move::NULL {
+            tt_move = td.stack[ply].mv;
         }
         // Negative Extensions
-        else if score > tt_score && td.stack[ply].mv != Move::NULL {
-            tt_move = Move::NULL;
-        } else if tt_score >= beta {
+        else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
