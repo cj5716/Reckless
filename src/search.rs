@@ -656,6 +656,7 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
+        td.stack[ply].mv = Move::NULL;
         let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
@@ -678,7 +679,7 @@ fn search<NODE: NodeType>(
             return (2 * score + beta) / 3;
         }
         // Negative Extensions
-        else if score > tt_score {
+        else if score > tt_score && td.stack[ply].mv != Move::NULL {
             tt_move = Move::NULL;
         } else if tt_score >= beta {
             extension = -2;
