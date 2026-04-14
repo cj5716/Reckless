@@ -687,6 +687,18 @@ fn search<NODE: NodeType>(
         }
     }
 
+    // Internal Iterative Deepening (IID)
+    if NODE::PV
+        && depth > 8
+        && tt_move == Move::NULL
+    {
+        td.stack[ply].mv = Move::NULL;
+        let score = search::<NonPV>(td, alpha, alpha + 1, depth - 8, true, ply);
+        if score > alpha {
+            tt_move = td.stack[ply].mv;
+        }
+    }
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
