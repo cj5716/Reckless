@@ -615,7 +615,7 @@ fn search<NODE: NodeType>(
             let mut attempt_beta = probcut_beta;
             let mut score = -qsearch::<NonPV>(td, -attempt_beta, -attempt_beta + 1, ply + 1);
 
-            if score >= probcut_beta && probcut_depth > 0 {
+            if score >= attempt_beta && probcut_depth > 0 {
                 let additional_red = ((score - probcut_beta) / probcut_margin).min(probcut_depth - 1);
                 attempt_depth = probcut_depth - additional_red;
                 attempt_beta = (probcut_beta + probcut_margin * additional_red).min(Score::INFINITE);
