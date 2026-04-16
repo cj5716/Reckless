@@ -588,7 +588,10 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 270 - 75 * improving as i32;
+    let probcut_margin = 90 - 25 * improving as i32;
+    let probcut_base_red = 3;
+    let probcut_beta = beta + probcut_margin * probcut_base_red;
+    let probcut_depth = (depth - probcut_base_red - 1).max(0);
 
     if cut_node
         && !is_win(beta)
@@ -608,21 +611,21 @@ fn search<NODE: NodeType>(
 
             make_move(td, ply, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
-
-            let base_depth = (depth - 4).max(0);
-            let mut probcut_depth = (base_depth - (score - probcut_beta) / 319).clamp(0, base_depth);
+            let mut attempt_depth = 0;
+            let mut attempt_beta = probcut_beta;
+            let mut score = -qsearch::<NonPV>(td, -attempt_beta, -attempt_beta + 1, ply + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                let adjusted_beta = (probcut_beta + 260 * (base_depth - probcut_depth)).min(Score::INFINITE);
+                let additional_red = ((score - probcut_beta) / probcut_margin).min(probcut_depth - 1);
+                attempt_depth = probcut_depth - additional_red;
+                attempt_beta = (probcut_beta + probcut_margin * additional_red).min(Score::INFINITE);
 
-                score = -search::<NonPV>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, false, ply + 1);
+                score = -search::<NonPV>(td, -attempt_beta, -attempt_beta + 1, attempt_depth, false, ply + 1);
 
-                if score < adjusted_beta && probcut_beta < adjusted_beta {
-                    probcut_depth = base_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                } else {
-                    probcut_beta = adjusted_beta;
+                if additional_red > 0 && score < attempt_beta {
+                    attempt_depth = probcut_depth;
+                    attempt_beta = probcut_beta;
+                    score = -search::<NonPV>(td, -attempt_beta, -attempt_beta + 1, attempt_depth, false, ply + 1);
                 }
             }
 
@@ -632,8 +635,8 @@ fn search<NODE: NodeType>(
                 return Score::ZERO;
             }
 
-            if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
+            if score >= attempt_beta {
+                td.shared.tt.write(hash, attempt_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
                     return (3 * score + beta) / 4;
