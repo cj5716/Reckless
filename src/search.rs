@@ -588,9 +588,11 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 270 - 75 * improving as i32;
+    let probcut_red = (depth - 1).min(3);
+    let mut probcut_beta = beta + probcut_red * (90 - 25 * improving as i32);
 
     if cut_node
+        && probcut_red > 0
         && !is_win(beta)
         && if is_valid(tt_score) { tt_score >= probcut_beta && !is_decisive(tt_score) } else { eval >= beta }
         && !tt_move.is_quiet()
@@ -610,7 +612,7 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let base_depth = (depth - 4).max(0);
+            let base_depth = depth - probcut_red - 1;
             let mut probcut_depth = (base_depth - (score - probcut_beta) / 319).clamp(0, base_depth);
 
             if score >= probcut_beta && probcut_depth > 0 {
