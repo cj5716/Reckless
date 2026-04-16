@@ -321,6 +321,8 @@ fn search<NODE: NodeType>(
         }
     }
 
+    td.stack[ply].pv_distance = if NODE::PV { 0 } else { td.stack[ply - 1].pv_distance + 1 };
+
     #[cfg(feature = "syzygy")]
     let mut max_score = Score::INFINITE;
 
@@ -652,7 +654,7 @@ fn search<NODE: NodeType>(
         debug_assert!(is_valid(tt_score));
 
         let singular_margin = if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
-            + depth * (tt_pv && !NODE::PV) as i32;
+            + depth * (tt_pv && !NODE::PV && td.stack[ply].pv_distance <= ply / 2) as i32;
         let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
