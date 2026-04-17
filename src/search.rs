@@ -1358,10 +1358,18 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
 }
 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
+    let mut running_total_cont = 0;
+    let mut eligible_entries = 0;
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
+        let average_cont: i32 = if eligible_entries == 0 { 0 } else { running_total_cont / eligible_entries };
+
+        let mv_bonus = bonus + (bonus.abs() * -average_cont / 262144);
+
         if entry.mv.is_present() {
-            td.continuation_history.update(entry.conthist, piece, sq, bonus);
+            running_total_cont += td.continuation_history.get(entry.conthist, piece, sq);
+            eligible_entries += 1;
+            td.continuation_history.update(entry.conthist, piece, sq, mv_bonus);
         }
     }
 }
