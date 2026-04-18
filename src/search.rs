@@ -1104,6 +1104,8 @@ fn search<NODE: NodeType>(
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+    } else if excluded && bound == Bound::Lower {
+        td.shared.tt.write(hash, depth, raw_eval, best_score, Bound::Lower, Move::NULL, ply, false, false);
     }
 
     if !(in_check
