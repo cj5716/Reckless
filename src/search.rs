@@ -814,7 +814,7 @@ fn search<NODE: NodeType>(
                 reduction -= 830 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if !tt_pv && cut_node {
+            if !tt_pv && cut_node && move_count < 7 {
                 reduction += 1818;
                 reduction += 2118 * tt_move.is_null() as i32;
             }
@@ -881,7 +881,7 @@ fn search<NODE: NodeType>(
                 reduction -= 1080 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if !tt_pv && cut_node {
+            if !tt_pv && cut_node && move_count < 7 {
                 reduction += 1543;
                 reduction += 2058 * tt_move.is_null() as i32;
             }
