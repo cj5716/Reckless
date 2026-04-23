@@ -1019,13 +1019,16 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_present() {
-        let noisy_bonus = (115 * depth).min(778) - 50 - 77 * cut_node as i32;
+
+        let factor = if move_count > 1 { depth } else { (depth as u32).div_ceil(2) as i32 };
+
+        let noisy_bonus = (115 * factor).min(778) - 50 - 77 * cut_node as i32;
         let noisy_malus = (176 * depth).min(1343) - 51 - 21 * noisy_moves.len() as i32;
 
-        let quiet_bonus = (172 * depth).min(1508) - 76 - 55 * cut_node as i32;
+        let quiet_bonus = (172 * factor).min(1508) - 76 - 55 * cut_node as i32;
         let quiet_malus = (156 * depth).min(1065) - 45 - 36 * quiet_moves.len() as i32;
 
-        let cont_bonus = (99 * depth).min(995) - 65 - 49 * cut_node as i32;
+        let cont_bonus = (99 * factor).min(995) - 65 - 49 * cut_node as i32;
         let cont_malus = (371 * depth).min(914) - 44 - 18 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
