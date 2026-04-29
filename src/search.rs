@@ -665,6 +665,21 @@ fn search<NODE: NodeType>(
         }
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
+
+            if tt_move.is_quiet() {
+                let quiet_malus = (156 * singular_depth).min(1065) - 45;
+                let cont_malus = (371 * singular_depth).min(914) - 44;
+
+                td.quiet_history.update(td.board.all_threats(), stm, tt_move, -quiet_malus);
+                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), -cont_malus);
+            }
+            else {
+                let noisy_malus = (176 * singular_depth).min(1343) - 51 - 21;
+
+                let captured = td.board.type_on(tt_move.to());
+                td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(tt_move), tt_move.to(), captured, -noisy_malus);
+            }
+
             return (2 * singular_score + beta) / 3;
         } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
             tt_move = Move::NULL;
