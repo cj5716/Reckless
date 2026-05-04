@@ -313,6 +313,13 @@ fn search<NODE: NodeType>(
         }
     }
 
+    if NODE::PV {
+        td.stack[ply].pv_distance = 0;
+    }
+    else {
+        td.stack[ply].pv_distance = td.stack[ply - 1].pv_distance + 1;
+    }
+
     #[cfg(feature = "syzygy")]
     let mut max_score = Score::INFINITE;
 
@@ -786,17 +793,18 @@ fn search<NODE: NodeType>(
 
             reduction += 546 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 322 * (is_valid(tt_score) && tt_depth < depth) as i32;
+            reduction -= 256 * (td.stack[ply].pv_distance + 1).ilog2() as i32;
 
             if is_quiet {
-                reduction += 1806;
+                reduction += 2358;
                 reduction -= 166 * history / 1024;
             } else {
-                reduction += 1449;
+                reduction += 2001;
                 reduction -= 109 * history / 1024;
             }
 
             if NODE::PV {
-                reduction -= 424 + 433 * (beta - alpha) / td.root_delta;
+                reduction -= 976 + 433 * (beta - alpha) / td.root_delta;
             }
 
             if tt_pv {
