@@ -1048,7 +1048,10 @@ fn search<NODE: NodeType>(
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper && (cut_node || NODE::PV) {
+    if !NODE::ROOT
+        && bound == Bound::Upper
+        && (cut_node || NODE::PV || tt_depth >= depth - 3 && tt_bound == Bound::Lower && estimated_score >= beta + 512)
+    {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
             let factor = 116
