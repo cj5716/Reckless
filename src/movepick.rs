@@ -201,7 +201,8 @@ impl MovePicker {
                 + 1614 * td.conthist(ply, 1, mv) / 1024
                 + 1066 * td.conthist(ply, 2, mv) / 1024
                 + 1086 * td.conthist(ply, 4, mv) / 1024
-                + 1051 * td.conthist(ply, 6, mv) / 1024
+                + 923 * td.conthist(ply, 6, mv) / 1024
+                + 128 * td.conthist(ply, 1, mv).max(td.conthist(ply, 2, mv)).max(td.conthist(ply, 4, mv)).max(td.conthist(ply, 6, mv)) / 1024
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
                 + 10723 * td.board.checking_squares(pt).contains(mv.to()) as i32
                 - 8875 * threatened[pt].contains(mv.to()) as i32
