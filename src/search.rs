@@ -1370,15 +1370,15 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        )) as i64 * (44443 + td.board.material()) as i64
-        / 3145728) as i32
+        )) as i64 * (19867 + td.board.material()) as i64
+        / 1572864) as i32
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bucket = td.board.fiftymove_clock_bucket();
     let corrhist = td.corrhist();
-    let bonus = ((52123 + td.board.material()) as i64 * depth as i64 * diff as i64 / 49152).clamp(-4678, 2496) as i32;
+    let bonus = ((23707 + td.board.material()) as i64 * depth as i64 * diff as i64 / 24576).clamp(-4678, 2496) as i32;
 
     corrhist.pawn.update(stm, td.board.pawn_key(), bucket, bonus);
 
