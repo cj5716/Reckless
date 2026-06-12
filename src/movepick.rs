@@ -11,8 +11,9 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
-    Quiet,
+    GoodQuiet,
     BadNoisy,
+    BadQuiet,
 }
 
 pub struct MovePicker {
@@ -22,6 +23,8 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    bad_quiet: ArrayVec<Move, MAX_MOVES>,
+    bad_quiet_idx: usize,
     noisy_count: usize,
 }
 
@@ -34,6 +37,8 @@ impl MovePicker {
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_quiet: ArrayVec::new(),
+            bad_quiet_idx: 0,
             noisy_count: 0,
         }
     }
@@ -78,28 +83,53 @@ impl MovePicker {
             if skip_quiets {
                 self.stage = Stage::BadNoisy;
             } else {
-                self.stage = Stage::Quiet;
+                self.stage = Stage::GoodQuiet;
                 td.board.append_quiet_moves(&mut self.list);
                 self.remove_tt();
                 self.score_quiet(td, ply);
             }
         }
 
-        if self.stage == Stage::Quiet {
-            if !skip_quiets && !self.list.is_empty() {
+        if self.stage == Stage::GoodQuiet {
+            while !skip_quiets && !self.list.is_empty() {
+                let entry = self.get_best_entry();
+                let mv = entry.mv;
+
+                if entry.score < -1024
+                    && td.quiet_history.get(td.board.all_threats(), td.board.side_to_move(), mv) < -1024
+                    && td.conthist(ply, 1, mv) < -1024
+                    && td.conthist(ply, 2, mv) < -1024
+                    && td.conthist(ply, 4, mv) < -1024
+                    && td.conthist(ply, 6, mv) < -1024
+                {
+                    self.bad_quiet.push(mv);
+                    continue;
+                }
+
                 if NODE::ROOT {
                     self.score_quiet(td, ply);
                 }
-                return Some(self.get_best_entry().mv);
+
+                return Some(mv);
             }
 
             self.stage = Stage::BadNoisy;
         }
 
-        // Stage::BadNoisy
-        if self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
-            self.bad_noisy_idx += 1;
+        if self.stage == Stage::BadNoisy {
+            if self.bad_noisy_idx < self.bad_noisy.len() {
+                let mv = self.bad_noisy[self.bad_noisy_idx];
+                self.bad_noisy_idx += 1;
+                return Some(mv);
+            }
+
+            self.stage = Stage::BadQuiet;
+        }
+
+        // Stage::BadQuiet
+        if !skip_quiets && self.bad_quiet_idx < self.bad_quiet.len() {
+            let mv = self.bad_quiet[self.bad_quiet_idx];
+            self.bad_quiet_idx += 1;
             return Some(mv);
         }
 
