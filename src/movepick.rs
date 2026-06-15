@@ -1,4 +1,4 @@
-use std::mem;
+use std::ptr;
 
 use crate::{
     lookup::king_attacks,
@@ -89,7 +89,7 @@ impl MovePicker {
             }
 
             self.stage = Stage::Misc;
-            mem::swap(&mut self.list, &mut self.mid_noisy);
+            unsafe { ptr::swap(&mut self.list, &mut self.mid_noisy); }
             if !skip_quiets {
                 td.board.append_quiet_moves(&mut self.list);
                 self.remove_tt();
