@@ -11,7 +11,7 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
-    Quiet,
+    Misc,
     BadNoisy,
 }
 
@@ -20,9 +20,12 @@ pub struct MovePicker {
     tt_move: Move,
     threshold: Option<i32>,
     stage: Stage,
+    mid_noisy: MoveList,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
     noisy_count: usize,
+    threatened: [Bitboard; PieceType::NUM],
+    offense: [Bitboard; PieceType::NUM],
 }
 
 impl MovePicker {
@@ -32,9 +35,12 @@ impl MovePicker {
             tt_move,
             threshold,
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
+            mid_noisy: MoveList::new(),
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
             noisy_count: 0,
+            threatened: [Bitboard(0); PieceType::NUM],
+            offense: [Bitboard(0); PieceType::NUM],
         }
     }
 
@@ -62,8 +68,13 @@ impl MovePicker {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 47 + 116);
-                if (self.tt_move.is_quiet() && self.noisy_count > 2) || !td.board.see(entry.mv, threshold) {
+                if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
+                    continue;
+                }
+
+                if self.tt_move.is_quiet() && self.noisy_count > 2 {
+                    self.mid_noisy.push_raw(entry);
                     continue;
                 }
 
@@ -75,22 +86,29 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            if skip_quiets {
-                self.stage = Stage::BadNoisy;
-            } else {
-                self.stage = Stage::Quiet;
+            self.stage = Stage::Misc;
+            if !skip_quiets {
                 td.board.append_quiet_moves(&mut self.list);
                 self.remove_tt();
+                self.init_quiet_luts(td);
                 self.score_quiet(td, ply);
             }
+
+            self.list.merge(&self.mid_noisy);
         }
 
-        if self.stage == Stage::Quiet {
-            if !skip_quiets && !self.list.is_empty() {
-                if NODE::ROOT {
-                    self.score_quiet(td, ply);
+        if self.stage == Stage::Misc {
+            while !self.list.is_empty() {
+                let entry = self.get_best_entry();
+                if skip_quiets && entry.mv.is_quiet() {
+                    continue;
                 }
-                return Some(self.get_best_entry().mv);
+
+                if NODE::ROOT {
+                    self.score_all(td, ply);
+                }
+
+                return Some(entry.mv);
             }
 
             self.stage = Stage::BadNoisy;
@@ -125,22 +143,7 @@ impl MovePicker {
         }
     }
 
-    fn score_noisy(&mut self, td: &ThreadData) {
-        let threats = td.board.all_threats();
-
-        for entry in self.list.iter_mut() {
-            let mv = entry.mv;
-            let captured = td.board.type_on(mv.capture_sq());
-            let pt = td.board.type_on(mv.from());
-
-            entry.score = 14232 * captured.value() / 1024
-                + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
-                + 4558 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
-                + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
-        }
-    }
-
-    fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
+    fn init_quiet_luts(&mut self, td: &ThreadData) {
         let threats = td.board.all_threats();
         let side = td.board.side_to_move();
         let occupancies = td.board.occupancies();
@@ -152,40 +155,57 @@ impl MovePicker {
             | td.board.piece_threats(PieceType::Queen)
             | td.board.piece_threats(PieceType::King);
 
-        let threatened = {
-            let minor_threats =
-                pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
-            let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
-            [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)]
-        };
+        let minor_threats =
+            pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
+        let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
+        self.threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
 
+        let knight_vulnerable = (td.board.colored_pieces(!side, PieceType::Bishop) & !threats)
+            | td.board.colored_pieces(!side, PieceType::Rook)
+            | td.board.colored_pieces(!side, PieceType::Queen);
+        let bishop_vulnerable = td.board.colored_pieces(!side, PieceType::Rook);
+        let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
+        let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
+
+        let mut pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+        pawn_offense |= pawn_threats & Bitboard::LEVER_RANKS[side] & !non_pawn_threats;
+
+        let knight_offense = knight_attacks_setwise(knight_vulnerable) & !threats;
+        let bishop_offense = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
+        let rook_offense = Bitboard::file(td.board.king_square(!side).file()) & !threats;
+        let queen_offense = (rook_attacks_setwise(queen_orth_vulnerable, occupancies)
+            | bishop_attacks_setwise(queen_diag_vulnerable, occupancies))
+            & !threats;
+        self.offense = [pawn_offense, knight_offense, bishop_offense, rook_offense, queen_offense, Bitboard(0)];
+    }
+
+    fn score_single_noisy(mv: Move, td: &ThreadData) -> i32 {
+        let threats = td.board.all_threats();
+        let captured = td.board.type_on(mv.capture_sq());
+        let pt = td.board.type_on(mv.from());
+
+        14232 * captured.value() / 1024
+            + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
+            + 4558 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
+            + (200000 - 20000 * pt as i32) * td.board.in_check() as i32
+            - 100000
+    }
+
+    fn score_noisy(&mut self, td: &ThreadData) {
+        for entry in self.list.iter_mut() {
+            entry.score = Self::score_single_noisy(entry.mv, td);
+        }
+    }
+
+    fn score_single_quiet(
+        mv: Move, td: &ThreadData, ply: isize, threatened: &[Bitboard; PieceType::NUM],
+        offense: &[Bitboard; PieceType::NUM],
+    ) -> i32 {
+        let threats = td.board.all_threats();
+        let side = td.board.side_to_move();
+        let pt = td.board.type_on(mv.from());
         let escape = [0, 8854, 8170, 14051, 20357, 0];
 
-        // safe squares where we can attack an opponent piece
-        let offense = {
-            let knight_vulnerable = (td.board.colored_pieces(!side, PieceType::Bishop) & !threats)
-                | td.board.colored_pieces(!side, PieceType::Rook)
-                | td.board.colored_pieces(!side, PieceType::Queen);
-            let bishop_vulnerable = td.board.colored_pieces(!side, PieceType::Rook);
-            let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
-            let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
-
-            let mut p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
-
-            // Add advanced pawn attacks to pawn offense
-            p |= pawn_threats & Bitboard::LEVER_RANKS[side] & !non_pawn_threats;
-
-            let n = knight_attacks_setwise(knight_vulnerable) & !threats;
-            let b = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
-            let r = Bitboard::file(td.board.king_square(!side).file()) & !threats;
-            let q = (rook_attacks_setwise(queen_orth_vulnerable, occupancies)
-                | bishop_attacks_setwise(queen_diag_vulnerable, occupancies))
-                & !threats;
-
-            [p, n, b, r, q, Bitboard(0)]
-        };
-
-        // don't move king wall pawns
         let my_king = td.board.king_square(side);
         let wall_pawns = if Bitboard::HOME_ROWS[side].contains(my_king) {
             king_attacks(my_king) & td.board.pieces(PieceType::Pawn)
@@ -193,20 +213,31 @@ impl MovePicker {
             Bitboard(0)
         };
 
-        for entry in self.list.iter_mut() {
-            let mv = entry.mv;
-            let pt = td.board.type_on(mv.from());
+        1763 * td.quiet_history.get(threats, side, mv) / 1024
+            + 1614 * td.conthist(ply, 1, mv) / 1024
+            + 1066 * td.conthist(ply, 2, mv) / 1024
+            + 1086 * td.conthist(ply, 4, mv) / 1024
+            + 1051 * td.conthist(ply, 6, mv) / 1024
+            + escape[pt] * threatened[pt].contains(mv.from()) as i32
+            + 10723 * td.board.checking_squares(pt).contains(mv.to()) as i32
+            - 8875 * threatened[pt].contains(mv.to()) as i32
+            + 3446 * offense[pt].contains(mv.to()) as i32
+            - 4494 * wall_pawns.contains(mv.from()) as i32
+    }
 
-            entry.score = 1763 * td.quiet_history.get(threats, side, mv) / 1024
-                + 1614 * td.conthist(ply, 1, mv) / 1024
-                + 1066 * td.conthist(ply, 2, mv) / 1024
-                + 1086 * td.conthist(ply, 4, mv) / 1024
-                + 1051 * td.conthist(ply, 6, mv) / 1024
-                + escape[pt] * threatened[pt].contains(mv.from()) as i32
-                + 10723 * td.board.checking_squares(pt).contains(mv.to()) as i32
-                - 8875 * threatened[pt].contains(mv.to()) as i32
-                + 3446 * offense[pt].contains(mv.to()) as i32
-                - 4494 * wall_pawns.contains(mv.from()) as i32;
+    fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
+        for entry in self.list.iter_mut() {
+            entry.score = Self::score_single_quiet(entry.mv, td, ply, &self.threatened, &self.offense);
+        }
+    }
+
+    fn score_all(&mut self, td: &ThreadData, ply: isize) {
+        for entry in self.list.iter_mut() {
+            entry.score = if entry.mv.is_quiet() {
+                Self::score_single_quiet(entry.mv, td, ply, &self.threatened, &self.offense)
+            } else {
+                Self::score_single_noisy(entry.mv, td)
+            };
         }
     }
 }
