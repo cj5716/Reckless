@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{
     lookup::king_attacks,
     search::NodeType,
@@ -87,14 +89,13 @@ impl MovePicker {
             }
 
             self.stage = Stage::Misc;
+            mem::swap(&mut self.list, &mut self.mid_noisy);
             if !skip_quiets {
                 td.board.append_quiet_moves(&mut self.list);
                 self.remove_tt();
                 self.init_quiet_luts(td);
-                self.score_quiet(td, ply);
+                self.score_all(td, ply);
             }
-
-            self.list.merge(&self.mid_noisy);
         }
 
         if self.stage == Stage::Misc {
