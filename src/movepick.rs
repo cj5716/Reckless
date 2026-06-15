@@ -155,28 +155,36 @@ impl MovePicker {
             | td.board.piece_threats(PieceType::Queen)
             | td.board.piece_threats(PieceType::King);
 
-        let minor_threats =
-            pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
-        let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
-        self.threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
+        self.threatened = {
+            let minor_threats =
+                pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
+            let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
 
-        let knight_vulnerable = (td.board.colored_pieces(!side, PieceType::Bishop) & !threats)
-            | td.board.colored_pieces(!side, PieceType::Rook)
-            | td.board.colored_pieces(!side, PieceType::Queen);
-        let bishop_vulnerable = td.board.colored_pieces(!side, PieceType::Rook);
-        let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
-        let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
+            [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)]
+        };
 
-        let mut pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
-        pawn_offense |= pawn_threats & Bitboard::LEVER_RANKS[side] & !non_pawn_threats;
+        // Safe squares where we can attack an opponent piece
+        self.offense = {
+            let knight_vulnerable = (td.board.colored_pieces(!side, PieceType::Bishop) & !threats)
+                | td.board.colored_pieces(!side, PieceType::Rook)
+                | td.board.colored_pieces(!side, PieceType::Queen);
+            let bishop_vulnerable = td.board.colored_pieces(!side, PieceType::Rook);
+            let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
+            let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
 
-        let knight_offense = knight_attacks_setwise(knight_vulnerable) & !threats;
-        let bishop_offense = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
-        let rook_offense = Bitboard::file(td.board.king_square(!side).file()) & !threats;
-        let queen_offense = (rook_attacks_setwise(queen_orth_vulnerable, occupancies)
-            | bishop_attacks_setwise(queen_diag_vulnerable, occupancies))
-            & !threats;
-        self.offense = [pawn_offense, knight_offense, bishop_offense, rook_offense, queen_offense, Bitboard(0)];
+            let mut p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+
+            // Add advanced pawn attacks to pawn offense
+            p |= pawn_threats & Bitboard::LEVER_RANKS[side] & !non_pawn_threats;
+            let n = knight_attacks_setwise(knight_vulnerable) & !threats;
+            let b = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
+            let r = Bitboard::file(td.board.king_square(!side).file()) & !threats;
+            let q = (rook_attacks_setwise(queen_orth_vulnerable, occupancies)
+                | bishop_attacks_setwise(queen_diag_vulnerable, occupancies))
+                & !threats;
+
+            [p, n, b, r, q, Bitboard(0)]
+        };
     }
 
     fn score_single_noisy(mv: Move, td: &ThreadData) -> i32 {
