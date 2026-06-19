@@ -539,7 +539,7 @@ fn search<NODE: NodeType>(
         && estimated_score + 200 * depth + 400 <= alpha
         && tt_bound != Bound::Lower
     {
-        let trim_alpha = alpha - 300;
+        let trim_alpha = alpha - 50 * depth - 150;
         let score = search::<NonPV>(td, trim_alpha, trim_alpha + 1, depth / 2, false, ply);
         if score <= trim_alpha {
             return score;
