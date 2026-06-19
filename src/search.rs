@@ -584,8 +584,13 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r =
-            (4407 + 917 * improving as i32 + 265 * depth + 477 * (estimated_score - beta).clamp(0, 1187) / 128) / 1024;
+        let mut r = 4396;
+        r += 917 * improving as i32;
+        r += 265 * depth;
+        r += 477 * (estimated_score - beta).clamp(0, 1187) / 128;
+        r += 1024 * (tt_bound == Bound::Lower && tt_depth >= depth - 2) as i32;
+
+        let nmp_depth = depth - r / 1024;
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
@@ -595,13 +600,7 @@ fn search<NODE: NodeType>(
         td.board.make_null_move();
         td.shared.tt.prefetch(td.board.hash());
 
-        let bound = if is_valid(tt_score) && beta > tt_score && tt_bound == Bound::Lower && depth - 2 <= tt_depth {
-            tt_score
-        } else {
-            beta
-        };
-
-        let score = -search::<NonPV>(td, -bound, -bound + 1, depth - r, false, ply + 1);
+        let score = -search::<NonPV>(td, -beta, -beta + 1, nmp_depth, false, ply + 1);
 
         td.board.undo_null_move();
 
@@ -609,20 +608,20 @@ fn search<NODE: NodeType>(
             return Score::ZERO;
         }
 
-        if score >= bound && !is_win(score) {
+        if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
 
-            td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, bound - 1, bound, depth - r, false, ply);
+            td.nmp_min_ply = ply as i32 + 3 * nmp_depth / 4;
+            let verified_score = search::<NonPV>(td, beta - 1, beta, nmp_depth, false, ply);
             td.nmp_min_ply = 0;
 
             if td.shared.status.get() == Status::STOPPED {
                 return Score::ZERO;
             }
 
-            if verified_score >= bound {
+            if verified_score >= beta {
                 return score;
             }
         }
