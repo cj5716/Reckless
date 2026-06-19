@@ -534,12 +534,12 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Trimming
-    let trim_alpha = alpha - 200 * depth - 200;
     if !NODE::PV
         && !in_check
-        && estimated_score <= trim_alpha
+        && estimated_score + 200 * depth + 400 <= alpha
         && tt_bound != Bound::Lower
     {
+        let trim_alpha = alpha - 300;
         let score = search::<NonPV>(td, trim_alpha, trim_alpha + 1, depth / 2, false, ply);
         if score <= trim_alpha {
             return score;
