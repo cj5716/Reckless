@@ -533,15 +533,17 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
-    // Razoring
+    // Trimming
+    let trim_alpha = alpha - 200 * depth - 200;
     if !NODE::PV
         && !in_check
-        && estimated_score < alpha - 237 - 254 * depth * depth
-        && alpha < 2048
-        && !tt_move.is_quiet()
+        && estimated_score <= trim_alpha
         && tt_bound != Bound::Lower
     {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+        let score = search::<NonPV>(td, trim_alpha, trim_alpha + 1, depth / 2, false, ply);
+        if score <= trim_alpha {
+            return score;
+        }
     }
 
     // Reverse Futility Pruning (RFP)
