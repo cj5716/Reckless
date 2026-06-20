@@ -731,7 +731,7 @@ fn search<NODE: NodeType>(
         }
     }
     // Low Depth Singular Extensions (LDSE)
-    else if depth <= 7 && !in_check && cut_node && tt_bound != Bound::Upper && tt_score >= beta.max(eval + 50) {
+    else if depth <= 5 && !in_check && cut_node && tt_bound != Bound::Upper && tt_score >= beta.max(eval + 50) {
         extension = 1;
     }
 
