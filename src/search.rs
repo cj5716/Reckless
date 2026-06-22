@@ -746,6 +746,7 @@ fn search<NODE: NodeType>(
     let mut skip_quiets = false;
     let mut current_search_count = 0;
     let mut tt_move_score = Score::NONE;
+    let mut min_depth_child = i32::MAX;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.excluded[ply] {
@@ -896,6 +897,7 @@ fn search<NODE: NodeType>(
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 2) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
+            min_depth_child = min_depth_child.min(reduced_depth);
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
             td.stack[ply].reduction = 0;
             current_search_count += 1;
@@ -956,7 +958,7 @@ fn search<NODE: NodeType>(
             reduction += ((td.nodes() + td.id as u64 * 26) % 128) as i32 - 56;
 
             let reduced_depth = new_depth - (reduction >= 2621) as i32 - (reduction >= 5579) as i32;
-
+            min_depth_child = min_depth_child.min(reduced_depth);
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             current_search_count += 1;
         }
@@ -967,6 +969,7 @@ fn search<NODE: NodeType>(
                 new_depth = new_depth.max(1);
             }
 
+            min_depth_child = min_depth_child.min(new_depth);
             score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
             current_search_count += 1;
         }
@@ -1150,7 +1153,8 @@ fn search<NODE: NodeType>(
     }
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+        let depth_bound = depth.max(min_depth_child + 1);
+        td.shared.tt.write(hash, depth_bound, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
 
     if !(in_check
