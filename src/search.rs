@@ -722,11 +722,13 @@ fn search<NODE: NodeType>(
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
             return lerp(singular_score, beta, 0.4027);
+        } else if tt_score >= beta {
+            return beta;
         } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
             tt_move = Move::NULL;
         }
         // Negative Extensions
-        else if tt_score >= beta || cut_node {
+        else if cut_node {
             extension = -3;
         }
     }
