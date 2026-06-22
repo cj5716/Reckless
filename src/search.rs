@@ -877,6 +877,10 @@ fn search<NODE: NodeType>(
                 reduction -= 955;
             }
 
+            if excluded {
+                reduction += 1536;
+            }
+
             if td.cutoff_count[ply + 1] > 2 {
                 reduction += 1151;
                 reduction += 400 * (!NODE::PV && !cut_node) as i32;
