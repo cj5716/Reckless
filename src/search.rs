@@ -688,11 +688,36 @@ fn search<NODE: NodeType>(
     let mut extension = 0;
     let mut singular_score = Score::NONE;
 
-    if !NODE::ROOT && !excluded && potential_singularity {
+    let try_singular = if potential_singularity {
+        true
+    } else if depth >= 9
+        && tt_depth >= depth - 6
+        && tt_score >= beta + 30 * depth
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && !(tt_pv && !NODE::PV)
+    {
+        let singular_beta = tt_score - depth * 2;
+        let singular_depth = (depth - 1) / 4;
+
+        td.excluded[ply] = tt_move;
+        td.stack[ply].mv = Move::NULL;
+        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        td.excluded[ply] = Move::NULL;
+        td.stack[ply].tt_pv = tt_pv;
+
+        score < singular_beta
+    } else {
+        false
+    };
+
+    if !NODE::ROOT && !excluded && try_singular {
         debug_assert!(is_valid(tt_score));
 
-        let singular_margin = if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
-            + depth * (tt_pv && !NODE::PV) as i32;
+        let singular_margin =
+            if tt_bound == Bound::Exact && tt_depth >= depth - 3 { (depth as u32).div_ceil(4) as i32 } else { depth }
+                + depth * (tt_pv && !NODE::PV) as i32;
         let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
