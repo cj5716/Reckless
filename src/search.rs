@@ -691,15 +691,15 @@ fn search<NODE: NodeType>(
     let try_singular = if potential_singularity {
         true
     } else if depth >= 9
-        && tt_depth >= depth - 6
-        && tt_score >= beta + 30 * depth
+        && tt_depth >= (depth - 6).max(depth / 2)
+        && tt_score >= beta + 100
         && tt_bound != Bound::Upper
         && is_valid(tt_score)
         && !is_decisive(tt_score)
         && !(tt_pv && !NODE::PV)
     {
         let singular_beta = tt_score - depth * 2;
-        let singular_depth = (depth - 1) / 4;
+        let singular_depth = (depth - 6) / 2;
 
         td.excluded[ply] = tt_move;
         td.stack[ply].mv = Move::NULL;
