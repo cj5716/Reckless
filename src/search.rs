@@ -698,7 +698,7 @@ fn search<NODE: NodeType>(
         && !is_decisive(tt_score)
         && !(tt_pv && !NODE::PV)
     {
-        let singular_beta = tt_score - 3 * depth;
+        let singular_beta = tt_score - 2 * depth;
         let singular_depth = (depth - 1) / 3;
 
         td.excluded[ply] = tt_move;
