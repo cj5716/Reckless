@@ -687,19 +687,21 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
     let mut singular_score = Score::NONE;
+    let singular_margin =
+        if tt_bound == Bound::Exact && tt_depth >= depth - 3 { (depth as u32).div_ceil(4) as i32 } else { depth }
+            + depth * (tt_pv && !NODE::PV) as i32;
+    let singular_beta = tt_score - singular_margin;
 
     let try_singular = if potential_singularity {
         true
     } else if depth >= 9
         && tt_depth >= (depth - 6).max(depth / 2)
-        && tt_score >= beta + 100
+        && tt_score >= beta
         && tt_bound != Bound::Upper
         && is_valid(tt_score)
         && !is_decisive(tt_score)
-        && !(tt_pv && !NODE::PV)
     {
-        let singular_beta = tt_score - depth * 2;
-        let singular_depth = (depth - 6) / 2;
+        let singular_depth = (depth - 5) / 2;
 
         td.excluded[ply] = tt_move;
         td.stack[ply].mv = Move::NULL;
@@ -715,10 +717,6 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !excluded && try_singular {
         debug_assert!(is_valid(tt_score));
 
-        let singular_margin =
-            if tt_bound == Bound::Exact && tt_depth >= depth - 3 { (depth as u32).div_ceil(4) as i32 } else { depth }
-                + depth * (tt_pv && !NODE::PV) as i32;
-        let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
         td.excluded[ply] = tt_move;
