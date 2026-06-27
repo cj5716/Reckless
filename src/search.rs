@@ -693,7 +693,8 @@ fn search<NODE: NodeType>(
 
         let singular_margin = if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
             + depth * (tt_pv && !NODE::PV) as i32;
-        let singular_beta = tt_score - singular_margin;
+        let singular_beta =
+            if tt_score >= beta { beta.max(tt_score - singular_margin) } else { tt_score - singular_margin };
         let singular_depth = (depth - 1) / 2;
 
         td.excluded[ply] = tt_move;
@@ -707,17 +708,17 @@ fn search<NODE: NodeType>(
         }
 
         if singular_score < singular_beta {
-            let double_margin = 195 * NODE::PV as i32 + 48 * (NODE::PV && !tt_was_pv) as i32
+            let double_margin = singular_margin + 195 * NODE::PV as i32 + 48 * (NODE::PV && !tt_was_pv) as i32
                 - 16 * tt_move.is_quiet() as i32
                 - 16 * correction_value.abs() / 128;
-            let triple_margin = 230 * NODE::PV as i32 + 56 * (NODE::PV && !tt_was_pv) as i32
+            let triple_margin = singular_margin + 230 * NODE::PV as i32 + 56 * (NODE::PV && !tt_was_pv) as i32
                 - 19 * tt_move.is_quiet() as i32
                 - 15 * correction_value.abs() / 128
                 + 36;
 
             extension = 1;
-            extension += (singular_score < singular_beta - double_margin) as i32;
-            extension += (singular_score < singular_beta - triple_margin) as i32;
+            extension += (singular_score < tt_score - double_margin) as i32;
+            extension += (singular_score < tt_score - triple_margin) as i32;
         }
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
@@ -726,7 +727,7 @@ fn search<NODE: NodeType>(
             tt_move = Move::NULL;
         }
         // Negative Extensions
-        else if tt_score >= beta || cut_node {
+        else if cut_node {
             extension = -3;
         }
     }
