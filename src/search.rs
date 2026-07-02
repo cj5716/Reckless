@@ -740,7 +740,8 @@ fn search<NODE: NodeType>(
         let prev_in_iid = td.in_iid;
 
         td.in_iid = true;
-        let _ = search::<PV>(td, alpha, (alpha + beta * 3 + 1) / 4, (768 * depth - 1792) / 1024, cut_node, ply);
+        let beta_scale = (432 + 10 * depth).min(1024);
+        let _ = search::<PV>(td, alpha, (alpha * (1024 - beta_scale) + beta * beta_scale + 1023) / 1024, (768 * depth - 1792) / 1024, cut_node, ply);
         td.in_iid = prev_in_iid;
 
         if let Some(entry) = td.shared.tt.read(hash, td.board.fiftymove_clock(), ply) {
