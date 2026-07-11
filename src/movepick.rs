@@ -132,9 +132,10 @@ impl MovePicker {
             let mv = entry.mv;
             let captured = td.board.type_on(mv.capture_sq());
             let pt = td.board.type_on(mv.from());
+            let hist = td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
 
-            entry.score = 14232 * captured.value() / 1024
-                + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
+            entry.score = ((14232 - hist / 4) * captured.value() + (hist / 4) * 1242) / 1024
+                + hist
                 + 4558 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
                 + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
         }
