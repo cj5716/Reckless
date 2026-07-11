@@ -42,7 +42,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, probcut: bool, ply: isize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -55,7 +55,13 @@ impl MovePicker {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
             self.remove_tt();
-            self.score_noisy(td);
+            
+			if probcut {
+				self.score_noisy_probcut(td);
+			}
+			else {
+				self.score_noisy(td);
+			}
         }
 
         if self.stage == Stage::GoodNoisy {
@@ -122,6 +128,16 @@ impl MovePicker {
     fn remove_tt(&mut self) {
         if let Some(pos) = self.list.iter().position(|&e| e.mv == self.tt_move) {
             self.list.remove(pos);
+        }
+    }
+
+	fn score_noisy_probcut(&mut self, td: &ThreadData) {
+        let threats = td.board.all_threats();
+
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+            let captured = td.board.type_on(mv.capture_sq());
+            entry.score = td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
         }
     }
 
