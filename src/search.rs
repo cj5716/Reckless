@@ -631,7 +631,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 254 - 85 * improving as i32;
+    let probcut_beta = beta + 254 - 85 * improving as i32;
 
     if cut_node
         && !is_win(beta)
@@ -655,18 +655,15 @@ fn search<NODE: NodeType>(
 
             let base_depth = (depth - 4 - improving as i32).max(0);
             let mut probcut_depth = (base_depth - (score - probcut_beta) / 319).clamp(0, base_depth);
+            let adjusted_beta = (probcut_beta + 197 * (base_depth - probcut_depth)).min(Score::INFINITE);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                let adjusted_beta = (probcut_beta + 197 * (base_depth - probcut_depth)).min(Score::INFINITE);
-
                 score = -search::<NonPV>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, false, ply + 1);
+            }
 
-                if score < adjusted_beta && probcut_beta < adjusted_beta {
-                    probcut_depth = base_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                } else {
-                    probcut_beta = adjusted_beta;
-                }
+            if score < adjusted_beta && base_depth > probcut_depth {
+                probcut_depth = base_depth;
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
             }
 
             undo_move(td, mv);
