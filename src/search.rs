@@ -639,6 +639,7 @@ fn search<NODE: NodeType>(
         && !tt_move.is_quiet()
     {
         let mut move_picker = MovePicker::new(Move::NULL, Some(probcut_beta - eval));
+        let mut move_count = 0;
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -650,6 +651,7 @@ fn search<NODE: NodeType>(
             }
 
             make_move(td, ply, mv);
+            move_count += 1;
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
@@ -682,6 +684,10 @@ fn search<NODE: NodeType>(
                     return score;
                 }
                 return lerp(score, beta, 0.2695);
+            }
+
+            if tt_move.is_quiet() && move_count > 3 {
+                break;
             }
         }
     }
