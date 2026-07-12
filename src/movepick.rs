@@ -6,6 +6,9 @@ use crate::{
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
 
+#[allow(unused_imports)]
+use crate::misc::{dbg_hit, dbg_stats};
+
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
@@ -61,7 +64,15 @@ impl MovePicker {
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 47 + 116);
+                let captured = td.board.type_on(entry.mv.capture_sq());
+                let threats = td.board.all_threats();
+                let hist = td
+                    .noisy_history
+                    .get(threats, td.board.moved_piece(entry.mv), entry.mv.to(), captured)
+                    .clamp(-3072, 12800);
+
+                let threshold = self.threshold.unwrap_or_else(|| -hist * 218 / 1024 + 187);
+
                 if (self.tt_move.is_quiet() && self.noisy_count > 2) || !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
