@@ -1244,14 +1244,12 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
-    let mut was_singular = false;
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
-        was_singular = entry.was_singular;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
