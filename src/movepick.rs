@@ -64,7 +64,7 @@ impl MovePicker {
                 let threshold = self.threshold.unwrap_or_else(|| {
 					let base = -entry.score / 47 + 116;
 					if self.tt_move.is_quiet() {
-						base.max(-269 + 90 * self.noisy_count as i32)
+						base.max(-269 + 90 * self.noisy_count.max(5) as i32)
 					}
 					else {
 						base
