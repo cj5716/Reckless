@@ -9,7 +9,7 @@ const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
 const ENTRIES_PER_CLUSTER: usize = 3;
 
-const AGE_CYCLE: u8 = 1 << 5;
+const AGE_CYCLE: u8 = 1 << 4;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
@@ -23,6 +23,7 @@ pub struct Entry {
     pub depth: i32,
     pub bound: Bound,
     pub tt_pv: bool,
+    pub was_singular: bool,
 }
 
 #[derive(Copy, Clone)]
@@ -31,10 +32,12 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub const fn new(bound: Bound, tt_pv: bool, age: u8) -> Self {
+    pub const fn new(bound: Bound, tt_pv: bool, was_singular: bool, age: u8) -> Self {
         debug_assert!(age <= AGE_MASK);
 
-        Self { data: (bound as u8) | ((tt_pv as u8) << 2) | (age << 3) }
+        Self {
+            data: (bound as u8) | ((tt_pv as u8) << 2) | ((was_singular as u8) << 3) | (age << 4),
+        }
     }
 
     pub const fn bound(self) -> Bound {
@@ -51,8 +54,12 @@ impl Flags {
         (self.data & (1 << 2)) != 0
     }
 
+    pub const fn was_singular(self) -> bool {
+        (self.data & (1 << 3)) != 0
+    }
+
     pub const fn age(self) -> u8 {
-        self.data >> 3
+        self.data >> 4
     }
 }
 
@@ -193,6 +200,7 @@ impl TranspositionTable {
                 raw_eval: entry.raw_eval as i32,
                 bound: entry.flags.bound(),
                 tt_pv: entry.flags.tt_pv(),
+                was_singular: entry.flags.was_singular(),
                 mv: entry.mv,
             };
 
@@ -205,7 +213,7 @@ impl TranspositionTable {
     #[allow(clippy::too_many_arguments)]
     pub fn write(
         &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
-        force: bool,
+        singular: bool, force: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
@@ -245,6 +253,7 @@ impl TranspositionTable {
 
         let entry_key = cluster.key(replacement_index);
         let entry = &mut cluster.entries[replacement_index];
+        let set_singular = entry_key == key && (mv.is_null() || entry.mv == mv) && singular;
 
         if !(entry_key == key && mv.is_null()) {
             entry.mv = mv;
@@ -262,7 +271,7 @@ impl TranspositionTable {
         entry.offset_depth = TtDepth::to_tt(depth);
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
-        entry.flags = Flags::new(bound, tt_pv, tt_age);
+        entry.flags = Flags::new(bound, tt_pv, set_singular, tt_age);
         cluster.set_key(replacement_index, key);
     }
 
