@@ -384,7 +384,7 @@ fn search<NODE: NodeType>(
 
         if !NODE::PV
             && !excluded
-            && tt_depth > depth - (tt_score < beta) as i32
+            && tt_depth > depth - (tt_move.is_null() as i32)
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
