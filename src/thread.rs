@@ -144,6 +144,7 @@ impl Default for Status {
 #[derive(Default)]
 pub struct SharedCorrectionHistory {
     pub pawn: CorrectionHistory,
+    pub pawn_qrb: [[[CorrectionHistory; 2]; 2]; 2],
     pub non_pawn: [CorrectionHistory; 2],
 }
 

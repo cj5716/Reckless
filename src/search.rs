@@ -1366,9 +1366,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
     let bucket = td.board.fiftymove_clock_bucket();
+    let has_bishop = !td.board.pieces(PieceType::Bishop).is_empty() as usize;
+    let has_rook = !td.board.pieces(PieceType::Rook).is_empty() as usize;
+    let has_queen = !td.board.pieces(PieceType::Queen).is_empty() as usize;
     let corrhist = td.corrhist();
 
     (corrhist.pawn.get(stm, td.board.pawn_key(), bucket)
+        + corrhist.pawn_qrb[has_bishop][has_rook][has_queen].get(stm, td.board.pawn_key(), bucket)
         + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White), bucket)
         + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black), bucket)
         + td.continuation_corrhist.get(
@@ -1387,10 +1391,14 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bucket = td.board.fiftymove_clock_bucket();
+    let has_bishop = !td.board.pieces(PieceType::Bishop).is_empty() as usize;
+    let has_rook = !td.board.pieces(PieceType::Rook).is_empty() as usize;
+    let has_queen = !td.board.pieces(PieceType::Queen).is_empty() as usize;
     let corrhist = td.corrhist();
     let bonus = (148 * depth * diff / 128).clamp(-4678, 2496);
 
     corrhist.pawn.update(stm, td.board.pawn_key(), bucket, bonus);
+    corrhist.pawn_qrb[has_bishop][has_rook][has_queen].update(stm, td.board.pawn_key(), bucket, bonus);
 
     corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bucket, bonus);
     corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bucket, bonus);
