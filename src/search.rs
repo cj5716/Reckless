@@ -1287,7 +1287,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(Move::NULL, None);
+    let mut move_picker = MovePicker::new(Move::NULL, if is_valid(eval) {
+		Some((alpha - eval) / 8 - correction_value.abs().min(68) - 74)
+	} else {
+		None
+	});
 
     let skip_quiets = |best_score| !in_check || !is_loss(best_score);
 
@@ -1301,7 +1305,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - correction_value.abs().min(68) - 74) {
+            if move_picker.stage() == Stage::BadNoisy {
                 continue;
             }
         }
