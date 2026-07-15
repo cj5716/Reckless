@@ -848,7 +848,7 @@ fn search<NODE: NodeType>(
             reduction -= (425 * improvement / 128).clamp(-241, 1155);
             reduction -= 3417 * correction_value.abs() / 1024;
 
-            reduction += 1412 * (bound == Bound::Exact) as i32;
+            reduction += (706 + 706 * (tt_was_pv as i32)) * (bound == Bound::Exact) as i32;
 
             reduction += 464 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 326 * (is_valid(tt_score) && tt_depth < depth) as i32;
