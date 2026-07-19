@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+	parameters::*,
     stack::Stack,
     thread::{PlyArray, RootMove, Status, ThreadData},
     time::Limits,
@@ -843,64 +844,64 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count >= 2 {
-            let mut risk = 4096;
+            let mut risk = lmr1();
 
             // Risk assessment parameters
             if NODE::PV {
-                risk -= 519 + 437 * (beta - alpha) / td.root_delta;
+                risk -= lmr2() + lmr3() * (beta - alpha) / td.root_delta;
             }
 
             if tt_pv {
-                risk -= 333;
+                risk -= lmr4();
             }
 
             if td.board.in_check() {
-                risk -= 955;
+                risk -= lmr5();
             }
 
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
-            let mut fail_prob = 2048;
+            let mut fail_prob = lmr6();
 
-            fail_prob -= (425 * improvement / 128).clamp(-241, 1155);
-            fail_prob -= 3417 * correction_value.abs() / 1024;
+            fail_prob -= (lmr7() * improvement / 128).clamp(lmr8(), lmr9());
+            fail_prob -= lmr10() * correction_value.abs() / 1024;
 
-            fail_prob += 1412 * (bound == Bound::Exact) as i32;
+            fail_prob += lmr11() * (bound == Bound::Exact) as i32;
 
-            fail_prob += 464 * (is_valid(tt_score) && tt_score <= alpha) as i32;
-            fail_prob += 326 * (is_valid(tt_score) && tt_depth < depth) as i32;
-            fail_prob += 1024 * is_win(beta) as i32;
+            fail_prob += lmr12() * (is_valid(tt_score) && tt_score <= alpha) as i32;
+            fail_prob += lmr13() * (is_valid(tt_score) && tt_depth < depth) as i32;
+            fail_prob += lmr14() * is_win(beta) as i32;
 
             if is_quiet {
-                fail_prob += 2171;
-                fail_prob -= 179 * history / 1024;
-                fail_prob += 418 * ((alpha - estimated_score).clamp(-65, 91)) / 128;
+                fail_prob += lmr15();
+                fail_prob -= lmr16() * history / 1024;
+                fail_prob += lmr17() * ((alpha - estimated_score).clamp(lmr18(), lmr19())) / 128;
             } else {
-                fail_prob += 1426;
-                fail_prob -= 130 * history / 1024;
+                fail_prob += lmr20();
+                fail_prob -= lmr21() * history / 1024;
             }
 
             if tt_pv {
-                fail_prob -= 611 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                fail_prob -= 685 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                fail_prob -= lmr22() * (is_valid(tt_score) && tt_score > alpha) as i32;
+                fail_prob -= lmr23() * (is_valid(tt_score) && tt_depth >= depth) as i32;
             } else if cut_node {
-                fail_prob += 1852;
-                fail_prob += 2204 * tt_move.is_null() as i32;
+                fail_prob += lmr24();
+                fail_prob += lmr25() * tt_move.is_null() as i32;
             }
 
             if td.cutoff_count[ply + 1] > 2 {
-                fail_prob += 1151;
-                fail_prob += 400 * (!NODE::PV && !cut_node) as i32;
+                fail_prob += lmr26();
+                fail_prob += lmr27() * (!NODE::PV && !cut_node) as i32;
             }
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                fail_prob += (496 * (margin - 185) / 128).clamp(0, 2021);
+                fail_prob += (lmr28() * (margin - lmr29()) / 128).clamp(0, lmr30());
             }
 
-            let coeff = (risk * depth.ilog2() as i32 * 256 + risk * 256) / 1024;
-            let reduction = coeff * fail_prob / 4096;
+            let coeff = (risk * depth.ilog2() as i32 * lmr31() + risk * lmr32()) / 1024;
+            let reduction = coeff * fail_prob / lmr33();
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 2) + 2 * NODE::PV as i32;
 
