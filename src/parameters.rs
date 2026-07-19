@@ -34,7 +34,7 @@ macro_rules! define {
 }
 
 define!(
-    i32 lmr1: 4096;
+    i32 lmr1: 2548;
     i32 lmr2: 519;
     i32 lmr3: 437;
     i32 lmr4: 333;
@@ -66,5 +66,5 @@ define!(
     i32 lmr30: 2021;
     i32 lmr31: 256;
     i32 lmr32: 256;
-    i32 lmr33: 4096;
+    i32 lmr33: 2548;
 );
