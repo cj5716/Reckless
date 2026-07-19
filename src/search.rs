@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-	parameters::*,
+    parameters::*,
     stack::Stack,
     thread::{PlyArray, RootMove, Status, ThreadData},
     time::Limits,
@@ -864,7 +864,7 @@ fn search<NODE: NodeType>(
             // Failure probability assessment parameters
             let mut fail_prob = lmr6();
 
-            fail_prob -= (lmr7() * improvement / 128).clamp(lmr8(), lmr9());
+            fail_prob -= (lmr7() * improvement / 128).clamp(-lmr8(), lmr9());
             fail_prob -= lmr10() * correction_value.abs() / 1024;
 
             fail_prob += lmr11() * (bound == Bound::Exact) as i32;
@@ -876,7 +876,7 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 fail_prob += lmr15();
                 fail_prob -= lmr16() * history / 1024;
-                fail_prob += lmr17() * ((alpha - estimated_score).clamp(lmr18(), lmr19())) / 128;
+                fail_prob += lmr17() * ((alpha - estimated_score).clamp(-lmr18(), lmr19())) / 128;
             } else {
                 fail_prob += lmr20();
                 fail_prob -= lmr21() * history / 1024;
