@@ -24,7 +24,7 @@ for v in params:
     (name, default, min, max) = (v["name"], v["default"], 1, v["default"] * 2.0)
 
     type = "int" if v["type"] in ["i32", "usize"] else "float"
-    step = (max - min) / 44
+    step = (max - min) / 66
 
     if v["type"] in ["i32", "usize"] == "usize":
         step = round(step)
