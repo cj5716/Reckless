@@ -859,13 +859,14 @@ fn search<NODE: NodeType>(
                 risk -= lmr5();
             }
 
+            risk -= lmr10() * correction_value.abs() / 1024;
+
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
             let mut fail_prob = lmr6();
 
             fail_prob -= (lmr7() * improvement / 128).clamp(-lmr8(), lmr9());
-            fail_prob -= lmr10() * correction_value.abs() / 1024;
 
             fail_prob += lmr11() * (bound == Bound::Exact) as i32;
 
