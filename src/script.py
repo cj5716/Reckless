@@ -21,10 +21,10 @@ for line in file.readlines():
         )
 
 for v in params:
-    (name, default, min, max) = (v["name"], v["default"], 1, v["default"] * 2.0)
+    (name, default, mn, mx) = (v["name"], v["default"], 1, v["default"] * 2.0)
 
     type = "int" if v["type"] in ["i32", "usize"] else "float"
-    step = (max - min) / 15
+    step = min((mx - mn) / 30, 200)
 
     if v["type"] in ["i32", "usize"] == "usize":
         step = round(step)
@@ -34,4 +34,4 @@ for v in params:
     if v["type"] in ["i32", "usize"] and "depth" in v["name"]:
         step = 0.5
 
-    print(f"{name}, {type}, {default}, {min}, {max}, {step}, 0.002")
+    print(f"{name}, {type}, {default}, {mn}, {mx}, {step}, 0.002")
