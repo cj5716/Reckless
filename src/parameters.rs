@@ -34,13 +34,11 @@ macro_rules! define {
 }
 
 define!(
-    i32 lmr1: 2548;
     i32 lmr2: 519;
     i32 lmr3: 437;
     i32 lmr4: 333;
     i32 lmr5: 955;
     i32 lmr10: 3417;
-    i32 lmr6: 2048;
     i32 lmr7: 425;
     i32 lmr8: 241;
     i32 lmr9: 1155;
@@ -64,7 +62,4 @@ define!(
     i32 lmr28: 496;
     i32 lmr29: 185;
     i32 lmr30: 2021;
-    i32 lmr31: 256;
-    i32 lmr32: 256;
-    i32 lmr33: 2548;
 );
