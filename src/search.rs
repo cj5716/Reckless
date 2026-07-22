@@ -484,6 +484,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_move = tt_move;
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
+    td.stack[ply].fail_prob = 0;
     td.stack[ply].move_count = 0;
     td.cutoff_count[ply + 2] = 0;
 
@@ -863,7 +864,7 @@ fn search<NODE: NodeType>(
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
-            let mut fail_prob = 1510;
+            let mut fail_prob = 1610;
 
             fail_prob -= (444 * improvement / 128).clamp(-231, 1230);
 
@@ -900,14 +901,18 @@ fn search<NODE: NodeType>(
                 fail_prob += (506 * (margin - 171) / 128).clamp(0, 1936);
             }
 
+            fail_prob -= td.stack[ply - 1].fail_prob / 8;
+
             let coeff = (risk * depth.ilog2() as i32 * 240 + risk * 244) / 1024;
             let reduction = coeff * fail_prob / 2737;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 2) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
+            td.stack[ply].fail_prob = fail_prob;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
             td.stack[ply].reduction = 0;
+            td.stack[ply].fail_prob = 0;
             current_search_count += 1;
 
             if score > alpha {
