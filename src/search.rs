@@ -874,7 +874,7 @@ fn search<NODE: NodeType>(
             fail_prob += 977 * is_win(beta) as i32;
 
             if is_quiet {
-                fail_prob += 1930;
+                fail_prob += 2030;
                 fail_prob -= 207 * history / 1024;
                 fail_prob += 388 * ((alpha - estimated_score).clamp(-65, 84)) / 128;
             } else {
