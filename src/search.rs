@@ -864,7 +864,7 @@ fn search<NODE: NodeType>(
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
-            let mut fail_prob = 1610;
+            let mut fail_prob = 1535;
 
             fail_prob -= (444 * improvement / 128).clamp(-231, 1230);
 
@@ -901,7 +901,7 @@ fn search<NODE: NodeType>(
                 fail_prob += (506 * (margin - 171) / 128).clamp(0, 1936);
             }
 
-            fail_prob -= td.stack[ply - 1].fail_prob / 8;
+            fail_prob -= td.stack[ply - 1].fail_prob / 32;
 
             let coeff = (risk * depth.ilog2() as i32 * 240 + risk * 244) / 1024;
             let reduction = coeff * fail_prob / 2737;
