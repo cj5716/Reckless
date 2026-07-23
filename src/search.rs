@@ -843,7 +843,7 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count >= 2 {
-            let mut risk = 2840;
+            let mut risk = 2791;
 
             // Risk assessment parameters
             if NODE::PV {
@@ -861,6 +861,8 @@ fn search<NODE: NodeType>(
             risk -= 3117 * correction_value.abs() / 1024;
 
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
+
+            risk += (td.stack[ply - 1].reduction % 1024) / 2;
 
             // Failure probability assessment parameters
             let mut fail_prob = 1510;
