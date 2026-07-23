@@ -860,7 +860,7 @@ fn search<NODE: NodeType>(
 
             risk -= 3117 * correction_value.abs() / 1024;
 
-            risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
+            risk += ((td.nodes() + td.id as u64 * 27) % 64) as i32 - 29;
 
             // Failure probability assessment parameters
             let mut fail_prob = 1510;
