@@ -847,57 +847,57 @@ fn search<NODE: NodeType>(
 
             // Risk assessment parameters
             if NODE::PV {
-                risk -= 467 + 390 * (beta - alpha) / td.root_delta;
+                risk -= 446 + 383 * (beta - alpha) / td.root_delta;
             }
 
             if tt_pv {
-                risk -= 314;
+                risk -= 318;
             }
 
             if td.board.in_check() {
-                risk -= 1024;
+                risk -= 1014;
             }
 
-            risk -= 3055 * correction_value.abs() / 1024;
+            risk -= 3079 * correction_value.abs() / 1024;
 
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
             let mut fail_prob = 1510;
 
-            fail_prob -= (435 * improvement / 128).clamp(-222, 1253);
+            fail_prob -= (437 * improvement / 128).clamp(-220, 1247);
 
-            fail_prob += 1535 * (bound == Bound::Exact) as i32;
+            fail_prob += 1595 * (bound == Bound::Exact) as i32;
 
-            fail_prob += 454 * (is_valid(tt_score) && tt_score <= alpha) as i32;
-            fail_prob += 319 * (is_valid(tt_score) && tt_depth < depth) as i32;
-            fail_prob += 968 * is_win(beta) as i32;
+            fail_prob += 442 * (is_valid(tt_score) && tt_score <= alpha) as i32;
+            fail_prob += 324 * (is_valid(tt_score) && tt_depth < depth) as i32;
+            fail_prob += 998 * is_win(beta) as i32;
 
             if is_quiet {
-                fail_prob += 1837;
-                fail_prob -= 209 * history / 1024;
-                fail_prob += 382 * ((alpha - estimated_score).clamp(-66, 83)) / 128;
+                fail_prob += 1736;
+                fail_prob -= 200 * history / 1024;
+                fail_prob += 373 * ((alpha - estimated_score).clamp(-66, 84)) / 128;
             } else {
-                fail_prob += 1254;
-                fail_prob -= 124 * history / 1024;
+                fail_prob += 1272;
+                fail_prob -= 126 * history / 1024;
             }
 
             if tt_pv {
-                fail_prob -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                fail_prob -= 623 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                fail_prob -= 651 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                fail_prob -= 604 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             } else if cut_node {
-                fail_prob += 1899;
-                fail_prob += 2168 * tt_move.is_null() as i32;
+                fail_prob += 1859;
+                fail_prob += 2102 * tt_move.is_null() as i32;
             }
 
             if td.cutoff_count[ply + 1] > 2 {
-                fail_prob += 1166;
-                fail_prob += 404 * (!NODE::PV && !cut_node) as i32;
+                fail_prob += 1176;
+                fail_prob += 411 * (!NODE::PV && !cut_node) as i32;
             }
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                fail_prob += (511 * (margin - 171) / 128).clamp(0, 1947);
+                fail_prob += (510 * (margin - 174) / 128).clamp(0, 2027);
             }
 
             let coeff = (risk * depth.ilog2() as i32 * 240 + risk * 244) / 1024;
