@@ -864,7 +864,7 @@ fn search<NODE: NodeType>(
             risk += ((td.nodes() + td.id as u64 * 27) % 128) as i32 - 59;
 
             // Failure probability assessment parameters
-            let mut fail_prob = 1535;
+            let mut fail_prob = 2792;
 
             fail_prob -= (444 * improvement / 128).clamp(-231, 1230);
 
@@ -875,11 +875,10 @@ fn search<NODE: NodeType>(
             fail_prob += 977 * is_win(beta) as i32;
 
             if is_quiet {
-                fail_prob += 1930;
+                fail_prob += 673;
                 fail_prob -= 207 * history / 1024;
                 fail_prob += 388 * ((alpha - estimated_score).clamp(-65, 84)) / 128;
             } else {
-                fail_prob += 1257;
                 fail_prob -= 129 * history / 1024;
             }
 
