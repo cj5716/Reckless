@@ -899,7 +899,7 @@ fn search<NODE: NodeType>(
                 fail_prob += (506 * (margin - 171) / 128).clamp(0, 1936);
             }
 
-            let coeff = risk * (82 + 320 * depth.ilog2() as i32) / 1024;
+            let coeff = risk * (122 + 300 * depth.ilog2() as i32) / 1024;
             let reduction = coeff * fail_prob / 2737;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 2) + 2 * NODE::PV as i32;
