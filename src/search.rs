@@ -902,7 +902,7 @@ fn search<NODE: NodeType>(
 
             fail_prob -= td.stack[ply - 1].fail_prob / 32;
 
-            let coeff = risk * (244 + 240 * depth.ilog2() as i32) / 1024;
+            let coeff = risk * (163 + 280 * depth.ilog2() as i32) / 1024;
             let reduction = coeff * fail_prob / 2737;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 2) + 2 * NODE::PV as i32;
