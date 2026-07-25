@@ -852,6 +852,9 @@ fn search<NODE: NodeType>(
 
             if tt_pv {
                 risk -= 316;
+            } else if cut_node {
+                risk += 1886;
+                risk += 2121 * tt_move.is_null() as i32;
             }
 
             if td.board.in_check() {
@@ -884,9 +887,6 @@ fn search<NODE: NodeType>(
             if tt_pv {
                 fail_prob -= 660 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 fail_prob -= 627 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            } else if cut_node {
-                fail_prob += 1886;
-                fail_prob += 2121 * tt_move.is_null() as i32;
             }
 
             if td.cutoff_count[ply + 1] > 2 {
