@@ -880,7 +880,7 @@ fn search<NODE: NodeType>(
                 reduction -= 130 * history / 1024;
             }
 
-			reduction -= 128 * (ply - last_critical_ply).min(8) as i32;
+            reduction -= 128 * (ply - last_critical_ply).min(8) as i32;
 
             if NODE::PV {
                 reduction -= 519 + 437 * (beta - alpha) / td.root_delta;
