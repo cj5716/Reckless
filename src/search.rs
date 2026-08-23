@@ -872,19 +872,18 @@ fn search<NODE: NodeType>(
             reduction += 1024 * is_win(beta) as i32;
 
             if is_quiet {
-                reduction += 2171;
+                reduction += 2432;
                 reduction -= 179 * history / 1024;
                 reduction += 418 * ((alpha - estimated_score).clamp(-65, 91)) / 128;
             } else {
-                reduction += 1426;
+                reduction += 1687;
                 reduction -= 130 * history / 1024;
             }
 
+			reduction -= 128 * (ply - last_critical_ply).min(8) as i32;
+
             if NODE::PV {
                 reduction -= 519 + 437 * (beta - alpha) / td.root_delta;
-            } else {
-                reduction += 60;
-                reduction -= (256 * (ply - last_critical_ply) / ply) as i32;
             }
 
             if tt_pv {
