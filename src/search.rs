@@ -355,6 +355,10 @@ fn search<NODE: NodeType>(
         if alpha >= beta {
             return alpha;
         }
+
+        td.stack[ply].pv_distance = td.stack[ply - 1].pv_distance + (last_critical_ply == ply) as i32;
+    } else {
+        td.stack[ply].pv_distance = 0;
     }
 
     #[cfg(feature = "syzygy")]
@@ -712,7 +716,7 @@ fn search<NODE: NodeType>(
         debug_assert!(is_valid(tt_score));
 
         let singular_margin = if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
-            + depth * (tt_pv && !NODE::PV) as i32;
+            + if tt_pv { depth * td.stack[ply].pv_distance.min(5) / 3 } else { 0 };
         let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
